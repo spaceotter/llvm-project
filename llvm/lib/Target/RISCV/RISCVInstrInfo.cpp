@@ -272,13 +272,16 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
     Opcode = RISCV::PseudoVSPILL_M1;
     IsZvlsseg = false;
   } else if (RISCV::VRM2RegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoVSPILL_M2;
+    assert(0);
+    //Opcode = RISCV::PseudoVSPILL_M2;
     IsZvlsseg = false;
   } else if (RISCV::VRM4RegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoVSPILL_M4;
+    assert(0);
+    //Opcode = RISCV::PseudoVSPILL_M4;
     IsZvlsseg = false;
   } else if (RISCV::VRM8RegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoVSPILL_M8;
+    assert(0);
+    //Opcode = RISCV::PseudoVSPILL_M8;
     IsZvlsseg = false;
   } else if (RISCV::VRN2M1RegClass.hasSubClassEq(RC))
     Opcode = RISCV::PseudoVSPILL2_M1;
@@ -373,13 +376,16 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
     Opcode = RISCV::PseudoVRELOAD_M1;
     IsZvlsseg = false;
   } else if (RISCV::VRM2RegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoVRELOAD_M2;
+    assert(0);
+    //Opcode = RISCV::PseudoVRELOAD_M2;
     IsZvlsseg = false;
   } else if (RISCV::VRM4RegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoVRELOAD_M4;
+    assert(0);
+    //Opcode = RISCV::PseudoVRELOAD_M4;
     IsZvlsseg = false;
   } else if (RISCV::VRM8RegClass.hasSubClassEq(RC)) {
-    Opcode = RISCV::PseudoVRELOAD_M8;
+    assert(0);
+    //Opcode = RISCV::PseudoVRELOAD_M8;
     IsZvlsseg = false;
   } else if (RISCV::VRN2M1RegClass.hasSubClassEq(RC))
     Opcode = RISCV::PseudoVRELOAD2_M1;
@@ -1195,10 +1201,7 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
   RISCV::PseudoV##OP##_##TYPE##_##LMUL
 
 #define CASE_VFMA_OPCODE_LMULS(OP, TYPE)                                       \
-  CASE_VFMA_OPCODE_COMMON(OP, TYPE, MF8):                                      \
-  case CASE_VFMA_OPCODE_COMMON(OP, TYPE, MF4):                                 \
-  case CASE_VFMA_OPCODE_COMMON(OP, TYPE, MF2):                                 \
-  case CASE_VFMA_OPCODE_COMMON(OP, TYPE, M1):                                  \
+  CASE_VFMA_OPCODE_COMMON(OP, TYPE, M1):                                       \
   case CASE_VFMA_OPCODE_COMMON(OP, TYPE, M2):                                  \
   case CASE_VFMA_OPCODE_COMMON(OP, TYPE, M4):                                  \
   case CASE_VFMA_OPCODE_COMMON(OP, TYPE, M8)
@@ -1329,9 +1332,6 @@ bool RISCVInstrInfo::findCommutedOpIndices(const MachineInstr &MI,
     break;
 
 #define CASE_VFMA_CHANGE_OPCODE_LMULS(OLDOP, NEWOP, TYPE)                      \
-  CASE_VFMA_CHANGE_OPCODE_COMMON(OLDOP, NEWOP, TYPE, MF8)                      \
-  CASE_VFMA_CHANGE_OPCODE_COMMON(OLDOP, NEWOP, TYPE, MF4)                      \
-  CASE_VFMA_CHANGE_OPCODE_COMMON(OLDOP, NEWOP, TYPE, MF2)                      \
   CASE_VFMA_CHANGE_OPCODE_COMMON(OLDOP, NEWOP, TYPE, M1)                       \
   CASE_VFMA_CHANGE_OPCODE_COMMON(OLDOP, NEWOP, TYPE, M2)                       \
   CASE_VFMA_CHANGE_OPCODE_COMMON(OLDOP, NEWOP, TYPE, M4)                       \
@@ -1451,10 +1451,7 @@ MachineInstr *RISCVInstrInfo::commuteInstructionImpl(MachineInstr &MI,
   RISCV::PseudoV##OP##_##LMUL##_TIED
 
 #define CASE_WIDEOP_OPCODE_LMULS(OP)                                           \
-  CASE_WIDEOP_OPCODE_COMMON(OP, MF8):                                          \
-  case CASE_WIDEOP_OPCODE_COMMON(OP, MF4):                                     \
-  case CASE_WIDEOP_OPCODE_COMMON(OP, MF2):                                     \
-  case CASE_WIDEOP_OPCODE_COMMON(OP, M1):                                      \
+  CASE_WIDEOP_OPCODE_COMMON(OP, M1):                                           \
   case CASE_WIDEOP_OPCODE_COMMON(OP, M2):                                      \
   case CASE_WIDEOP_OPCODE_COMMON(OP, M4)
 // clang-format on
@@ -1465,9 +1462,6 @@ MachineInstr *RISCVInstrInfo::commuteInstructionImpl(MachineInstr &MI,
     break;
 
 #define CASE_WIDEOP_CHANGE_OPCODE_LMULS(OP)                                    \
-  CASE_WIDEOP_CHANGE_OPCODE_COMMON(OP, MF8)                                    \
-  CASE_WIDEOP_CHANGE_OPCODE_COMMON(OP, MF4)                                    \
-  CASE_WIDEOP_CHANGE_OPCODE_COMMON(OP, MF2)                                    \
   CASE_WIDEOP_CHANGE_OPCODE_COMMON(OP, M1)                                     \
   CASE_WIDEOP_CHANGE_OPCODE_COMMON(OP, M2)                                     \
   CASE_WIDEOP_CHANGE_OPCODE_COMMON(OP, M4)
@@ -1603,25 +1597,25 @@ static bool isRVVWholeLoadStore(unsigned Opcode) {
   default:
     return false;
   case RISCV::VS1R_V:
-  case RISCV::VS2R_V:
-  case RISCV::VS4R_V:
-  case RISCV::VS8R_V:
-  case RISCV::VL1RE8_V:
-  case RISCV::VL2RE8_V:
-  case RISCV::VL4RE8_V:
-  case RISCV::VL8RE8_V:
-  case RISCV::VL1RE16_V:
-  case RISCV::VL2RE16_V:
-  case RISCV::VL4RE16_V:
-  case RISCV::VL8RE16_V:
-  case RISCV::VL1RE32_V:
-  case RISCV::VL2RE32_V:
-  case RISCV::VL4RE32_V:
-  case RISCV::VL8RE32_V:
-  case RISCV::VL1RE64_V:
-  case RISCV::VL2RE64_V:
-  case RISCV::VL4RE64_V:
-  case RISCV::VL8RE64_V:
+  //case RISCV::VS2R_V:
+  //case RISCV::VS4R_V:
+  //case RISCV::VS8R_V:
+  case RISCV::VL1R_V:
+  // case RISCV::VL2RE8_V:
+  // case RISCV::VL4RE8_V:
+  // case RISCV::VL8RE8_V:
+  // case RISCV::VL1RE16_V:
+  // case RISCV::VL2RE16_V:
+  // case RISCV::VL4RE16_V:
+  // case RISCV::VL8RE16_V:
+  // case RISCV::VL1RE32_V:
+  // case RISCV::VL2RE32_V:
+  // case RISCV::VL4RE32_V:
+  // case RISCV::VL8RE32_V:
+  // case RISCV::VL1RE64_V:
+  // case RISCV::VL2RE64_V:
+  // case RISCV::VL4RE64_V:
+  // case RISCV::VL8RE64_V:
     return true;
   }
 }

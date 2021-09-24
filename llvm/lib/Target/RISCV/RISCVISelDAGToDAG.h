@@ -81,11 +81,13 @@ public:
                                   SmallVectorImpl<SDValue> &Operands,
                                   MVT *IndexVT = nullptr);
 
+  #if 0
   void selectVLSEG(SDNode *Node, bool IsMasked, bool IsStrided);
   void selectVLSEGFF(SDNode *Node, bool IsMasked);
   void selectVLXSEG(SDNode *Node, bool IsMasked, bool IsOrdered);
   void selectVSSEG(SDNode *Node, bool IsMasked, bool IsStrided);
   void selectVSXSEG(SDNode *Node, bool IsMasked, bool IsOrdered);
+  #endif
 
   // Return the RISC-V condition code that matches the given DAG integer
   // condition code. The CondCode must be one of those supported by the RISC-V

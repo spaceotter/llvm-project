@@ -482,6 +482,7 @@ void RISCVInsertVSETVLI::insertVSETVLI(MachineBasicBlock &MBB, MachineInstr &MI,
     return;
   }
 
+  /*
   if (Info.hasAVLImm()) {
     BuildMI(MBB, MI, DL, TII->get(RISCV::PseudoVSETIVLI))
         .addReg(RISCV::X0, RegState::Define | RegState::Dead)
@@ -489,6 +490,7 @@ void RISCVInsertVSETVLI::insertVSETVLI(MachineBasicBlock &MBB, MachineInstr &MI,
         .addImm(Info.encodeVTYPE());
     return;
   }
+  */
 
   Register AVLReg = Info.getAVLReg();
   if (AVLReg == RISCV::NoRegister) {
@@ -504,10 +506,13 @@ void RISCVInsertVSETVLI::insertVSETVLI(MachineBasicBlock &MBB, MachineInstr &MI,
       return;
     }
     // Otherwise use an AVL of 0 to avoid depending on previous vl.
+    /*
     BuildMI(MBB, MI, DL, TII->get(RISCV::PseudoVSETIVLI))
         .addReg(RISCV::X0, RegState::Define | RegState::Dead)
         .addImm(0)
         .addImm(Info.encodeVTYPE());
+    */
+    assert(0);
     return;
   }
 
@@ -533,16 +538,12 @@ void RISCVInsertVSETVLI::insertVSETVLI(MachineBasicBlock &MBB, MachineInstr &MI,
 // VSETIVLI instruction.
 static VSETVLIInfo getInfoForVSETVLI(const MachineInstr &MI) {
   VSETVLIInfo NewInfo;
-  if (MI.getOpcode() == RISCV::PseudoVSETIVLI) {
-    NewInfo.setAVLImm(MI.getOperand(1).getImm());
-  } else {
-    assert(MI.getOpcode() == RISCV::PseudoVSETVLI ||
-           MI.getOpcode() == RISCV::PseudoVSETVLIX0);
-    Register AVLReg = MI.getOperand(1).getReg();
-    assert((AVLReg != RISCV::X0 || MI.getOperand(0).getReg() != RISCV::X0) &&
-           "Can't handle X0, X0 vsetvli yet");
-    NewInfo.setAVLReg(AVLReg);
-  }
+  assert(MI.getOpcode() == RISCV::PseudoVSETVLI ||
+         MI.getOpcode() == RISCV::PseudoVSETVLIX0);
+  Register AVLReg = MI.getOperand(1).getReg();
+  assert((AVLReg != RISCV::X0 || MI.getOperand(0).getReg() != RISCV::X0) &&
+         "Can't handle X0, X0 vsetvli yet");
+  NewInfo.setAVLReg(AVLReg);
   NewInfo.setVTYPE(MI.getOperand(2).getImm());
 
   return NewInfo;
@@ -562,8 +563,7 @@ bool RISCVInsertVSETVLI::needVSETVLI(const VSETVLIInfo &Require,
       Require.hasSameVTYPE(CurInfo)) {
     if (MachineInstr *DefMI = MRI->getVRegDef(Require.getAVLReg())) {
       if (DefMI->getOpcode() == RISCV::PseudoVSETVLI ||
-          DefMI->getOpcode() == RISCV::PseudoVSETVLIX0 ||
-          DefMI->getOpcode() == RISCV::PseudoVSETIVLI) {
+          DefMI->getOpcode() == RISCV::PseudoVSETVLIX0) {
         VSETVLIInfo DefInfo = getInfoForVSETVLI(*DefMI);
         if (DefInfo.hasSameAVL(CurInfo) && DefInfo.hasSameVTYPE(CurInfo))
           return false;
@@ -589,12 +589,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVLE8_V_M4_MASK:
   case RISCV::PseudoVLE8_V_M8:
   case RISCV::PseudoVLE8_V_M8_MASK:
-  case RISCV::PseudoVLE8_V_MF2:
-  case RISCV::PseudoVLE8_V_MF2_MASK:
-  case RISCV::PseudoVLE8_V_MF4:
-  case RISCV::PseudoVLE8_V_MF4_MASK:
-  case RISCV::PseudoVLE8_V_MF8:
-  case RISCV::PseudoVLE8_V_MF8_MASK:
   case RISCV::PseudoVLSE8_V_M1:
   case RISCV::PseudoVLSE8_V_M1_MASK:
   case RISCV::PseudoVLSE8_V_M2:
@@ -603,12 +597,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVLSE8_V_M4_MASK:
   case RISCV::PseudoVLSE8_V_M8:
   case RISCV::PseudoVLSE8_V_M8_MASK:
-  case RISCV::PseudoVLSE8_V_MF2:
-  case RISCV::PseudoVLSE8_V_MF2_MASK:
-  case RISCV::PseudoVLSE8_V_MF4:
-  case RISCV::PseudoVLSE8_V_MF4_MASK:
-  case RISCV::PseudoVLSE8_V_MF8:
-  case RISCV::PseudoVLSE8_V_MF8_MASK:
   case RISCV::PseudoVSE8_V_M1:
   case RISCV::PseudoVSE8_V_M1_MASK:
   case RISCV::PseudoVSE8_V_M2:
@@ -617,12 +605,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVSE8_V_M4_MASK:
   case RISCV::PseudoVSE8_V_M8:
   case RISCV::PseudoVSE8_V_M8_MASK:
-  case RISCV::PseudoVSE8_V_MF2:
-  case RISCV::PseudoVSE8_V_MF2_MASK:
-  case RISCV::PseudoVSE8_V_MF4:
-  case RISCV::PseudoVSE8_V_MF4_MASK:
-  case RISCV::PseudoVSE8_V_MF8:
-  case RISCV::PseudoVSE8_V_MF8_MASK:
   case RISCV::PseudoVSSE8_V_M1:
   case RISCV::PseudoVSSE8_V_M1_MASK:
   case RISCV::PseudoVSSE8_V_M2:
@@ -631,12 +613,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVSSE8_V_M4_MASK:
   case RISCV::PseudoVSSE8_V_M8:
   case RISCV::PseudoVSSE8_V_M8_MASK:
-  case RISCV::PseudoVSSE8_V_MF2:
-  case RISCV::PseudoVSSE8_V_MF2_MASK:
-  case RISCV::PseudoVSSE8_V_MF4:
-  case RISCV::PseudoVSSE8_V_MF4_MASK:
-  case RISCV::PseudoVSSE8_V_MF8:
-  case RISCV::PseudoVSSE8_V_MF8_MASK:
     EEW = 8;
     break;
   case RISCV::PseudoVLE16_V_M1:
@@ -647,10 +623,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVLE16_V_M4_MASK:
   case RISCV::PseudoVLE16_V_M8:
   case RISCV::PseudoVLE16_V_M8_MASK:
-  case RISCV::PseudoVLE16_V_MF2:
-  case RISCV::PseudoVLE16_V_MF2_MASK:
-  case RISCV::PseudoVLE16_V_MF4:
-  case RISCV::PseudoVLE16_V_MF4_MASK:
   case RISCV::PseudoVLSE16_V_M1:
   case RISCV::PseudoVLSE16_V_M1_MASK:
   case RISCV::PseudoVLSE16_V_M2:
@@ -659,10 +631,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVLSE16_V_M4_MASK:
   case RISCV::PseudoVLSE16_V_M8:
   case RISCV::PseudoVLSE16_V_M8_MASK:
-  case RISCV::PseudoVLSE16_V_MF2:
-  case RISCV::PseudoVLSE16_V_MF2_MASK:
-  case RISCV::PseudoVLSE16_V_MF4:
-  case RISCV::PseudoVLSE16_V_MF4_MASK:
   case RISCV::PseudoVSE16_V_M1:
   case RISCV::PseudoVSE16_V_M1_MASK:
   case RISCV::PseudoVSE16_V_M2:
@@ -671,10 +639,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVSE16_V_M4_MASK:
   case RISCV::PseudoVSE16_V_M8:
   case RISCV::PseudoVSE16_V_M8_MASK:
-  case RISCV::PseudoVSE16_V_MF2:
-  case RISCV::PseudoVSE16_V_MF2_MASK:
-  case RISCV::PseudoVSE16_V_MF4:
-  case RISCV::PseudoVSE16_V_MF4_MASK:
   case RISCV::PseudoVSSE16_V_M1:
   case RISCV::PseudoVSSE16_V_M1_MASK:
   case RISCV::PseudoVSSE16_V_M2:
@@ -683,10 +647,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVSSE16_V_M4_MASK:
   case RISCV::PseudoVSSE16_V_M8:
   case RISCV::PseudoVSSE16_V_M8_MASK:
-  case RISCV::PseudoVSSE16_V_MF2:
-  case RISCV::PseudoVSSE16_V_MF2_MASK:
-  case RISCV::PseudoVSSE16_V_MF4:
-  case RISCV::PseudoVSSE16_V_MF4_MASK:
     EEW = 16;
     break;
   case RISCV::PseudoVLE32_V_M1:
@@ -697,8 +657,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVLE32_V_M4_MASK:
   case RISCV::PseudoVLE32_V_M8:
   case RISCV::PseudoVLE32_V_M8_MASK:
-  case RISCV::PseudoVLE32_V_MF2:
-  case RISCV::PseudoVLE32_V_MF2_MASK:
   case RISCV::PseudoVLSE32_V_M1:
   case RISCV::PseudoVLSE32_V_M1_MASK:
   case RISCV::PseudoVLSE32_V_M2:
@@ -707,8 +665,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVLSE32_V_M4_MASK:
   case RISCV::PseudoVLSE32_V_M8:
   case RISCV::PseudoVLSE32_V_M8_MASK:
-  case RISCV::PseudoVLSE32_V_MF2:
-  case RISCV::PseudoVLSE32_V_MF2_MASK:
   case RISCV::PseudoVSE32_V_M1:
   case RISCV::PseudoVSE32_V_M1_MASK:
   case RISCV::PseudoVSE32_V_M2:
@@ -717,8 +673,6 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVSE32_V_M4_MASK:
   case RISCV::PseudoVSE32_V_M8:
   case RISCV::PseudoVSE32_V_M8_MASK:
-  case RISCV::PseudoVSE32_V_MF2:
-  case RISCV::PseudoVSE32_V_MF2_MASK:
   case RISCV::PseudoVSSE32_V_M1:
   case RISCV::PseudoVSSE32_V_M1_MASK:
   case RISCV::PseudoVSSE32_V_M2:
@@ -727,10 +681,9 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVSSE32_V_M4_MASK:
   case RISCV::PseudoVSSE32_V_M8:
   case RISCV::PseudoVSSE32_V_M8_MASK:
-  case RISCV::PseudoVSSE32_V_MF2:
-  case RISCV::PseudoVSSE32_V_MF2_MASK:
     EEW = 32;
     break;
+    /*
   case RISCV::PseudoVLE64_V_M1:
   case RISCV::PseudoVLE64_V_M1_MASK:
   case RISCV::PseudoVLE64_V_M2:
@@ -765,6 +718,7 @@ bool canSkipVSETVLIForLoadStore(const MachineInstr &MI,
   case RISCV::PseudoVSSE64_V_M8_MASK:
     EEW = 64;
     break;
+    */
   }
 
   return CurInfo.isCompatibleWithLoadStoreEEW(EEW, Require);
@@ -777,8 +731,7 @@ bool RISCVInsertVSETVLI::computeVLVTYPEChanges(const MachineBasicBlock &MBB) {
   for (const MachineInstr &MI : MBB) {
     // If this is an explicit VSETVLI or VSETIVLI, update our state.
     if (MI.getOpcode() == RISCV::PseudoVSETVLI ||
-        MI.getOpcode() == RISCV::PseudoVSETVLIX0 ||
-        MI.getOpcode() == RISCV::PseudoVSETIVLI) {
+        MI.getOpcode() == RISCV::PseudoVSETVLIX0) {
       HadVectorOp = true;
       BBInfo.Change = getInfoForVSETVLI(MI);
       continue;
@@ -889,8 +842,7 @@ bool RISCVInsertVSETVLI::needVSETVLIPHI(const VSETVLIInfo &Require,
     // We need the PHI input to the be the output of a VSET(I)VLI.
     MachineInstr *DefMI = MRI->getVRegDef(InReg);
     if (!DefMI || (DefMI->getOpcode() != RISCV::PseudoVSETVLI &&
-                   DefMI->getOpcode() != RISCV::PseudoVSETVLIX0 &&
-                   DefMI->getOpcode() != RISCV::PseudoVSETIVLI))
+                   DefMI->getOpcode() != RISCV::PseudoVSETVLIX0))
       return true;
 
     // We found a VSET(I)VLI make sure it matches the output of the
@@ -914,8 +866,7 @@ void RISCVInsertVSETVLI::emitVSETVLIs(MachineBasicBlock &MBB) {
   for (MachineInstr &MI : MBB) {
     // If this is an explicit VSETVLI or VSETIVLI, update our state.
     if (MI.getOpcode() == RISCV::PseudoVSETVLI ||
-        MI.getOpcode() == RISCV::PseudoVSETVLIX0 ||
-        MI.getOpcode() == RISCV::PseudoVSETIVLI) {
+        MI.getOpcode() == RISCV::PseudoVSETVLIX0) {
       // Conservatively, mark the VL and VTYPE as live.
       assert(MI.getOperand(3).getReg() == RISCV::VL &&
              MI.getOperand(4).getReg() == RISCV::VTYPE &&

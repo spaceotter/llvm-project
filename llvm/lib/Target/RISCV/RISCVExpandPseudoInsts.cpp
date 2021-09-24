@@ -290,7 +290,7 @@ bool RISCVExpandPseudo::expandVSPILL(MachineBasicBlock &MBB,
   unsigned SubRegIdx = RISCV::sub_vrm1_0;
   static_assert(RISCV::sub_vrm1_7 == RISCV::sub_vrm1_0 + 7,
                 "Unexpected subreg numbering");
-  if (LMUL == 2) {
+  /*if (LMUL == 2) {
     Opcode = RISCV::VS2R_V;
     SubRegIdx = RISCV::sub_vrm2_0;
     static_assert(RISCV::sub_vrm2_3 == RISCV::sub_vrm2_0 + 3,
@@ -300,7 +300,7 @@ bool RISCVExpandPseudo::expandVSPILL(MachineBasicBlock &MBB,
     SubRegIdx = RISCV::sub_vrm4_0;
     static_assert(RISCV::sub_vrm4_1 == RISCV::sub_vrm4_0 + 1,
                   "Unexpected subreg numbering");
-  } else
+                  } else*/
     assert(LMUL == 1 && "LMUL must be 1, 2, or 4.");
 
   for (unsigned I = 0; I < NF; ++I) {
@@ -334,21 +334,21 @@ bool RISCVExpandPseudo::expandVRELOAD(MachineBasicBlock &MBB,
   unsigned NF = ZvlssegInfo->first;
   unsigned LMUL = ZvlssegInfo->second;
   assert(NF * LMUL <= 8 && "Invalid NF/LMUL combinations.");
-  unsigned Opcode = RISCV::VL1RE8_V;
+  unsigned Opcode = RISCV::VL1R_V;
   unsigned SubRegIdx = RISCV::sub_vrm1_0;
   static_assert(RISCV::sub_vrm1_7 == RISCV::sub_vrm1_0 + 7,
                 "Unexpected subreg numbering");
-  if (LMUL == 2) {
-    Opcode = RISCV::VL2RE8_V;
+  /*if (LMUL == 2) {
+    Opcode = RISCV::VL2R_V;
     SubRegIdx = RISCV::sub_vrm2_0;
     static_assert(RISCV::sub_vrm2_3 == RISCV::sub_vrm2_0 + 3,
                   "Unexpected subreg numbering");
   } else if (LMUL == 4) {
-    Opcode = RISCV::VL4RE8_V;
+    Opcode = RISCV::VL4R_V;
     SubRegIdx = RISCV::sub_vrm4_0;
     static_assert(RISCV::sub_vrm4_1 == RISCV::sub_vrm4_0 + 1,
                   "Unexpected subreg numbering");
-  } else
+                  } else*/
     assert(LMUL == 1 && "LMUL must be 1, 2, or 4.");
 
   for (unsigned I = 0; I < NF; ++I) {

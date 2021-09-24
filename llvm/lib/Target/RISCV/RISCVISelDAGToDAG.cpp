@@ -244,6 +244,8 @@ void RISCVDAGToDAGISel::addVectorLoadStoreOperands(
     Operands.push_back(Glue);
 }
 
+// disable Zvlsseg
+#if 0
 void RISCVDAGToDAGISel::selectVLSEG(SDNode *Node, bool IsMasked,
                                     bool IsStrided) {
   SDLoc DL(Node);
@@ -444,7 +446,7 @@ void RISCVDAGToDAGISel::selectVSXSEG(SDNode *Node, bool IsMasked,
 
   ReplaceNode(Node, Store);
 }
-
+#endif
 
 void RISCVDAGToDAGISel::Select(SDNode *Node) {
   // If we have a custom node, we have already selected.
@@ -842,6 +844,7 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       } else {
         VLOperand = Node->getOperand(2);
 
+          /*
         if (auto *C = dyn_cast<ConstantSDNode>(VLOperand)) {
           uint64_t AVL = C->getZExtValue();
           if (isUInt<5>(AVL)) {
@@ -849,10 +852,11 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
             ReplaceNode(
                 Node, CurDAG->getMachineNode(RISCV::PseudoVSETIVLI, DL, XLenVT,
                                              MVT::Other, VLImm, VTypeIOp,
-                                             /* Chain */ Node->getOperand(0)));
+                                             /* Chain *//* Node->getOperand(0)));
             return;
           }
         }
+          */
       }
 
       ReplaceNode(Node,
@@ -861,6 +865,8 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
                                          /* Chain */ Node->getOperand(0)));
       return;
     }
+
+#if 0
     case Intrinsic::riscv_vlseg2:
     case Intrinsic::riscv_vlseg3:
     case Intrinsic::riscv_vlseg4:
@@ -957,6 +963,7 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       selectVLSEGFF(Node, /*IsMasked*/ true);
       return;
     }
+#endif
     case Intrinsic::riscv_vloxei:
     case Intrinsic::riscv_vloxei_mask:
     case Intrinsic::riscv_vluxei:
@@ -1071,6 +1078,7 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
   case ISD::INTRINSIC_VOID: {
     unsigned IntNo = cast<ConstantSDNode>(Node->getOperand(1))->getZExtValue();
     switch (IntNo) {
+#if 0
     case Intrinsic::riscv_vsseg2:
     case Intrinsic::riscv_vsseg3:
     case Intrinsic::riscv_vsseg4:
@@ -1147,6 +1155,7 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
     case Intrinsic::riscv_vsuxseg8_mask:
       selectVSXSEG(Node, /*IsMasked*/ true, /*IsOrdered*/ false);
       return;
+#endif
     case Intrinsic::riscv_vsoxei:
     case Intrinsic::riscv_vsoxei_mask:
     case Intrinsic::riscv_vsuxei:
