@@ -1167,12 +1167,6 @@ RISCVII::VLMUL RISCVTargetLowering::getLMUL(MVT VT) {
   switch (KnownSize) {
   default:
     llvm_unreachable("Invalid LMUL.");
-  case 8:
-    return RISCVII::VLMUL::LMUL_F8;
-  case 16:
-    return RISCVII::VLMUL::LMUL_F4;
-  case 32:
-    return RISCVII::VLMUL::LMUL_F2;
   case 64:
     return RISCVII::VLMUL::LMUL_1;
   case 128:
@@ -1188,9 +1182,6 @@ unsigned RISCVTargetLowering::getRegClassIDForLMUL(RISCVII::VLMUL LMul) {
   switch (LMul) {
   default:
     llvm_unreachable("Invalid LMUL.");
-  case RISCVII::VLMUL::LMUL_F8:
-  case RISCVII::VLMUL::LMUL_F4:
-  case RISCVII::VLMUL::LMUL_F2:
   case RISCVII::VLMUL::LMUL_1:
     return RISCV::VRRegClassID;
   case RISCVII::VLMUL::LMUL_2:
@@ -1204,10 +1195,7 @@ unsigned RISCVTargetLowering::getRegClassIDForLMUL(RISCVII::VLMUL LMul) {
 
 unsigned RISCVTargetLowering::getSubregIndexByMVT(MVT VT, unsigned Index) {
   RISCVII::VLMUL LMUL = getLMUL(VT);
-  if (LMUL == RISCVII::VLMUL::LMUL_F8 ||
-      LMUL == RISCVII::VLMUL::LMUL_F4 ||
-      LMUL == RISCVII::VLMUL::LMUL_F2 ||
-      LMUL == RISCVII::VLMUL::LMUL_1) {
+  if (LMUL == RISCVII::VLMUL::LMUL_1) {
     static_assert(RISCV::sub_vrm1_7 == RISCV::sub_vrm1_0 + 7,
                   "Unexpected subreg numbering");
     return RISCV::sub_vrm1_0 + Index;
@@ -4160,9 +4148,7 @@ SDValue RISCVTargetLowering::lowerINSERT_SUBVECTOR(SDValue Op,
           VecVT, SubVecVT, OrigIdx, TRI);
 
   RISCVII::VLMUL SubVecLMUL = RISCVTargetLowering::getLMUL(SubVecVT);
-  bool IsSubVecPartReg = SubVecLMUL == RISCVII::VLMUL::LMUL_F2 ||
-                         SubVecLMUL == RISCVII::VLMUL::LMUL_F4 ||
-                         SubVecLMUL == RISCVII::VLMUL::LMUL_F8;
+  bool IsSubVecPartReg = false;
 
   // 1. If the Idx has been completely eliminated and this subvector's size is
   // a vector register or a multiple thereof, or the surrounding elements are

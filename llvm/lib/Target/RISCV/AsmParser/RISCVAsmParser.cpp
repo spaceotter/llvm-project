@@ -1188,7 +1188,7 @@ bool RISCVAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(
         ErrorLoc,
         "operand must be "
-        "e[8|16|32|64|128|256|512|1024],m[1|2|4|8|f2|f4|f8],[ta|tu],[ma|mu]");
+        "e[8|16|32|64|128|256|512|1024],m[1|2|4|8]");
   }
   case Match_InvalidVMaskRegister: {
     SMLoc ErrorLoc = ((RISCVOperand &)*Operands[ErrorInfo]).getStartLoc();
@@ -1576,7 +1576,7 @@ OperandMatchResultTy RISCVAsmParser::parseVTypeI(OperandVector &Operands) {
     getLexer().Lex();
   }
 
-  if (VTypeIElements.size() == 7) {
+  if (VTypeIElements.size() == 3) {
     // The VTypeIElements layout is:
     // SEW comma LMUL comma TA comma MA
     //  0    1    2     3    4   5    6
@@ -1592,40 +1592,18 @@ OperandMatchResultTy RISCVAsmParser::parseVTypeI(OperandVector &Operands) {
     Name = VTypeIElements[2].getIdentifier();
     if (!Name.consume_front("m"))
       goto MatchFail;
-    // "m" or "mf"
-    bool Fractional = Name.consume_front("f");
     unsigned Lmul;
     if (Name.getAsInteger(10, Lmul))
       goto MatchFail;
-    if (!RISCVVType::isValidLMUL(Lmul, Fractional))
-      goto MatchFail;
-
-    // ta or tu
-    Name = VTypeIElements[4].getIdentifier();
-    bool TailAgnostic;
-    if (Name == "ta")
-      TailAgnostic = true;
-    else if (Name == "tu")
-      TailAgnostic = false;
-    else
-      goto MatchFail;
-
-    // ma or mu
-    Name = VTypeIElements[6].getIdentifier();
-    bool MaskAgnostic;
-    if (Name == "ma")
-      MaskAgnostic = true;
-    else if (Name == "mu")
-      MaskAgnostic = false;
-    else
+    if (!RISCVVType::isValidLMUL(Lmul, false))
       goto MatchFail;
 
     unsigned LmulLog2 = Log2_32(Lmul);
     RISCVII::VLMUL VLMUL =
-        static_cast<RISCVII::VLMUL>(Fractional ? 8 - LmulLog2 : LmulLog2);
+        static_cast<RISCVII::VLMUL>(LmulLog2);
 
     unsigned VTypeI =
-        RISCVVType::encodeVTYPE(VLMUL, Sew, TailAgnostic, MaskAgnostic);
+        RISCVVType::encodeVTYPE(VLMUL, Sew, false, false);
     Operands.push_back(RISCVOperand::createVType(VTypeI, S, isRV64()));
     return MatchOperand_Success;
   }
@@ -2558,40 +2536,69 @@ bool RISCVAsmParser::validateInstruction(MCInst &Inst,
   unsigned DestReg = Inst.getOperand(0).getReg();
   // Operands[1] will be the first operand, DestReg.
   SMLoc Loc = Operands[1]->getStartLoc();
-  if (Constraints & RISCVII::VS2Constraint) {
-    unsigned CheckReg = Inst.getOperand(1).getReg();
-    if (DestReg == CheckReg)
+  if ((Constraints == RISCVII::WidenV) || (Constraints == RISCVII::WidenW) ||
+      (Constraints == RISCVII::SlideUp) || (Constraints == RISCVII::Vrgather) ||
+      (Constraints == RISCVII::Vcompress)) {
+    if (Constraints != RISCVII::WidenW) {
+      unsigned Src2Reg = Inst.getOperand(1).getReg();
+      if (DestReg == Src2Reg)
+        return Error(Loc, "The destination vector register group cannot overlap"
+                          " the source vector register group.");
+      if (Constraints == RISCVII::WidenV) {
+        // Assume DestReg LMUL is 2 at least for widening/narrowing operations.
+        if (DestReg + 1 == Src2Reg)
+          return Error(Loc,
+                       "The destination vector register group cannot overlap"
+                       " the source vector register group.");
+      }
+    }
+    if (Inst.getOperand(2).isReg()) {
+      unsigned Src1Reg = Inst.getOperand(2).getReg();
+      if (DestReg == Src1Reg)
+        return Error(Loc, "The destination vector register group cannot overlap"
+                          " the source vector register group.");
+      if (Constraints == RISCVII::WidenV || Constraints == RISCVII::WidenW) {
+        // Assume DestReg LMUL is 2 at least for widening/narrowing operations.
+        if (DestReg + 1 == Src1Reg)
+          return Error(Loc,
+                       "The destination vector register group cannot overlap"
+                       " the source vector register group.");
+      }
+    }
+    if (Inst.getNumOperands() == 4) {
+      unsigned MaskReg = Inst.getOperand(3).getReg();
+
+      if (DestReg == MaskReg)
+        return Error(Loc, "The destination vector register group cannot overlap"
+                          " the mask register.");
+    }
+  } else if (Constraints == RISCVII::Narrow) {
+    unsigned Src2Reg = Inst.getOperand(1).getReg();
+    if (DestReg == Src2Reg)
       return Error(Loc, "The destination vector register group cannot overlap"
                         " the source vector register group.");
-  }
-  if ((Constraints & RISCVII::VS1Constraint) && (Inst.getOperand(2).isReg())) {
-    unsigned CheckReg = Inst.getOperand(2).getReg();
-    if (DestReg == CheckReg)
+    // Assume Src2Reg LMUL is 2 at least for widening/narrowing operations.
+    if (DestReg == Src2Reg + 1)
       return Error(Loc, "The destination vector register group cannot overlap"
                         " the source vector register group.");
-  }
-  if ((Constraints & RISCVII::VMConstraint) && (DestReg == RISCV::V0)) {
-    // vadc, vsbc are special cases. These instructions have no mask register.
-    // The destination register could not be V0.
-    unsigned Opcode = Inst.getOpcode();
-    if (Opcode == RISCV::VADC_VVM || Opcode == RISCV::VADC_VXM ||
-        Opcode == RISCV::VADC_VIM || Opcode == RISCV::VSBC_VVM ||
-        Opcode == RISCV::VSBC_VXM || Opcode == RISCV::VFMERGE_VFM ||
-        Opcode == RISCV::VMERGE_VIM || Opcode == RISCV::VMERGE_VVM ||
-        Opcode == RISCV::VMERGE_VXM)
-      return Error(Loc, "The destination vector register group cannot be V0.");
-
-    // Regardless masked or unmasked version, the number of operands is the
-    // same. For example, "viota.m v0, v2" is "viota.m v0, v2, NoRegister"
-    // actually. We need to check the last operand to ensure whether it is
-    // masked or not.
-    unsigned CheckReg = Inst.getOperand(Inst.getNumOperands() - 1).getReg();
-    assert((CheckReg == RISCV::V0 || CheckReg == RISCV::NoRegister) &&
-           "Unexpected register for mask operand");
-
-    if (DestReg == CheckReg)
+  } else if (Constraints == RISCVII::WidenCvt || Constraints == RISCVII::Iota) {
+    unsigned Src2Reg = Inst.getOperand(1).getReg();
+    if (DestReg == Src2Reg)
       return Error(Loc, "The destination vector register group cannot overlap"
-                        " the mask register.");
+                        " the source vector register group.");
+    if (Constraints == RISCVII::WidenCvt) {
+      // Assume DestReg LMUL is 2 at least for widening/narrowing operations.
+      if (DestReg + 1 == Src2Reg)
+        return Error(Loc, "The destination vector register group cannot overlap"
+                          " the source vector register group.");
+    }
+    if (Inst.getNumOperands() == 3) {
+      unsigned MaskReg = Inst.getOperand(2).getReg();
+
+      if (DestReg == MaskReg)
+        return Error(Loc, "The destination vector register group cannot overlap"
+                          " the mask register.");
+    }
   }
   return false;
 }

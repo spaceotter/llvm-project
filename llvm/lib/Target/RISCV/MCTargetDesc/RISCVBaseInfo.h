@@ -48,7 +48,7 @@ enum {
   InstFormatShift = 0,
 
   ConstraintShift = InstFormatShift + 5,
-  ConstraintMask = 0b111 << ConstraintShift,
+  ConstraintMask = 0b1111 << ConstraintShift,
 
   VLMulShift = ConstraintShift + 3,
   VLMulMask = 0b111 << VLMulShift,
@@ -87,9 +87,14 @@ enum {
 // Match with the definitions in RISCVInstrFormatsV.td
 enum VConstraintType {
   NoConstraint = 0,
-  VS2Constraint = 0b001,
-  VS1Constraint = 0b010,
-  VMConstraint = 0b100,
+  WidenV = 1,
+  WidenW = 2,
+  WidenCvt = 3,
+  Narrow = 4,
+  Iota = 5,
+  SlideUp = 6,
+  Vrgather = 7,
+  Vcompress = 8
 };
 
 enum VLMUL : uint8_t {
@@ -97,10 +102,6 @@ enum VLMUL : uint8_t {
   LMUL_2,
   LMUL_4,
   LMUL_8,
-  LMUL_RESERVED,
-  LMUL_F8,
-  LMUL_F4,
-  LMUL_F2
 };
 
 // Helper functions to read TSFlags.
@@ -336,7 +337,7 @@ unsigned encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW, bool TailAgnostic,
                      bool MaskAgnostic);
 
 inline static RISCVII::VLMUL getVLMUL(unsigned VType) {
-  unsigned VLMUL = VType & 0x7;
+  unsigned VLMUL = VType & 0x3;
   return static_cast<RISCVII::VLMUL>(VLMUL);
 }
 
@@ -349,7 +350,7 @@ inline static unsigned decodeVSEW(unsigned VSEW) {
 }
 
 inline static unsigned getSEW(unsigned VType) {
-  unsigned VSEW = (VType >> 3) & 0x7;
+  unsigned VSEW = (VType >> 2) & 0x7;
   return decodeVSEW(VSEW);
 }
 

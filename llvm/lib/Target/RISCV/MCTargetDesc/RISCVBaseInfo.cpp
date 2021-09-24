@@ -130,10 +130,6 @@ std::pair<unsigned, bool> RISCVVType::decodeVLMUL(RISCVII::VLMUL VLMUL) {
   case RISCVII::VLMUL::LMUL_4:
   case RISCVII::VLMUL::LMUL_8:
     return std::make_pair(1 << static_cast<unsigned>(VLMUL), false);
-  case RISCVII::VLMUL::LMUL_F2:
-  case RISCVII::VLMUL::LMUL_F4:
-  case RISCVII::VLMUL::LMUL_F8:
-    return std::make_pair(1 << (8 - static_cast<unsigned>(VLMUL)), true);
   }
 }
 
@@ -144,22 +140,7 @@ void RISCVVType::printVType(unsigned VType, raw_ostream &OS) {
   unsigned LMul;
   bool Fractional;
   std::tie(LMul, Fractional) = decodeVLMUL(getVLMUL(VType));
-
-  if (Fractional)
-    OS << ", mf";
-  else
-    OS << ", m";
-  OS << LMul;
-
-  if (isTailAgnostic(VType))
-    OS << ", ta";
-  else
-    OS << ", tu";
-
-  if (isMaskAgnostic(VType))
-    OS << ", ma";
-  else
-    OS << ", mu";
+  OS << ", m" << LMul;
 }
 
 } // namespace llvm

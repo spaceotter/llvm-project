@@ -198,9 +198,6 @@ static SDValue createTuple(SelectionDAG &CurDAG, ArrayRef<SDValue> Regs,
   switch (LMUL) {
   default:
     llvm_unreachable("Invalid LMUL.");
-  case RISCVII::VLMUL::LMUL_F8:
-  case RISCVII::VLMUL::LMUL_F4:
-  case RISCVII::VLMUL::LMUL_F2:
   case RISCVII::VLMUL::LMUL_1:
     return createM1Tuple(CurDAG, Regs, NF);
   case RISCVII::VLMUL::LMUL_2:
@@ -672,21 +669,6 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       switch (RISCVTargetLowering::getLMUL(Src1VT)) {
       default:
         llvm_unreachable("Unexpected LMUL!");
-      case RISCVII::VLMUL::LMUL_F8:
-        VMSLTOpcode =
-            IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF8 : RISCV::PseudoVMSLT_VX_MF8;
-        VMNANDOpcode = RISCV::PseudoVMNAND_MM_MF8;
-        break;
-      case RISCVII::VLMUL::LMUL_F4:
-        VMSLTOpcode =
-            IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF4 : RISCV::PseudoVMSLT_VX_MF4;
-        VMNANDOpcode = RISCV::PseudoVMNAND_MM_MF4;
-        break;
-      case RISCVII::VLMUL::LMUL_F2:
-        VMSLTOpcode =
-            IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF2 : RISCV::PseudoVMSLT_VX_MF2;
-        VMNANDOpcode = RISCV::PseudoVMNAND_MM_MF2;
-        break;
       case RISCVII::VLMUL::LMUL_1:
         VMSLTOpcode =
             IsUnsigned ? RISCV::PseudoVMSLTU_VX_M1 : RISCV::PseudoVMSLT_VX_M1;
@@ -741,24 +723,6 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       switch (RISCVTargetLowering::getLMUL(Src1VT)) {
       default:
         llvm_unreachable("Unexpected LMUL!");
-      case RISCVII::VLMUL::LMUL_F8:
-        VMSLTOpcode =
-            IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF8 : RISCV::PseudoVMSLT_VX_MF8;
-        VMSLTMaskOpcode = IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF8_MASK
-                                     : RISCV::PseudoVMSLT_VX_MF8_MASK;
-        break;
-      case RISCVII::VLMUL::LMUL_F4:
-        VMSLTOpcode =
-            IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF4 : RISCV::PseudoVMSLT_VX_MF4;
-        VMSLTMaskOpcode = IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF4_MASK
-                                     : RISCV::PseudoVMSLT_VX_MF4_MASK;
-        break;
-      case RISCVII::VLMUL::LMUL_F2:
-        VMSLTOpcode =
-            IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF2 : RISCV::PseudoVMSLT_VX_MF2;
-        VMSLTMaskOpcode = IsUnsigned ? RISCV::PseudoVMSLTU_VX_MF2_MASK
-                                     : RISCV::PseudoVMSLT_VX_MF2_MASK;
-        break;
       case RISCVII::VLMUL::LMUL_1:
         VMSLTOpcode =
             IsUnsigned ? RISCV::PseudoVMSLTU_VX_M1 : RISCV::PseudoVMSLT_VX_M1;
@@ -788,18 +752,6 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       switch (RISCVTargetLowering::getLMUL(VT)) {
       default:
         llvm_unreachable("Unexpected LMUL!");
-      case RISCVII::VLMUL::LMUL_F8:
-        VMXOROpcode = RISCV::PseudoVMXOR_MM_MF8;
-        VMANDNOTOpcode = RISCV::PseudoVMANDNOT_MM_MF8;
-        break;
-      case RISCVII::VLMUL::LMUL_F4:
-        VMXOROpcode = RISCV::PseudoVMXOR_MM_MF4;
-        VMANDNOTOpcode = RISCV::PseudoVMANDNOT_MM_MF4;
-        break;
-      case RISCVII::VLMUL::LMUL_F2:
-        VMXOROpcode = RISCV::PseudoVMXOR_MM_MF2;
-        VMANDNOTOpcode = RISCV::PseudoVMANDNOT_MM_MF2;
-        break;
       case RISCVII::VLMUL::LMUL_1:
         VMXOROpcode = RISCV::PseudoVMXOR_MM_M1;
         VMANDNOTOpcode = RISCV::PseudoVMANDNOT_MM_M1;
@@ -1308,9 +1260,7 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       break;
 
     RISCVII::VLMUL SubVecLMUL = RISCVTargetLowering::getLMUL(SubVecContainerVT);
-    bool IsSubVecPartReg = SubVecLMUL == RISCVII::VLMUL::LMUL_F2 ||
-                           SubVecLMUL == RISCVII::VLMUL::LMUL_F4 ||
-                           SubVecLMUL == RISCVII::VLMUL::LMUL_F8;
+    bool IsSubVecPartReg = false;
     (void)IsSubVecPartReg; // Silence unused variable warning without asserts.
     assert((!IsSubVecPartReg || V.isUndef()) &&
            "Expecting lowering to have created legal INSERT_SUBVECTORs when "

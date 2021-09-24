@@ -370,10 +370,7 @@ multiclass VPatNConvertFP2ISDNode_V<SDNode vop, string instruction_name> {
 let Predicates = [HasStdExtV] in {
 
 // 7.4. Vector Unit-Stride Instructions
-foreach vti = !listconcat(FractionalGroupIntegerVectors,
-                          FractionalGroupFloatVectors) in
-  defm : VPatUSLoadStoreSDNode<vti.Vector, vti.Log2SEW, vti.LMul,
-                               vti.AVL, vti.RegClass>;
+/*
 foreach vti = [VI8M1, VI16M1, VI32M1, VI64M1, VF16M1, VF32M1, VF64M1] in
   defm : VPatUSLoadStoreWholeVRSDNode<vti.Vector, vti.Log2SEW, vti.LMul,
                                       vti.RegClass>;
@@ -382,6 +379,7 @@ foreach vti = !listconcat(GroupIntegerVectors, GroupFloatVectors) in
                                       vti.RegClass>;
 foreach mti = AllMasks in
   defm : VPatUSLoadStoreMaskSDNode<mti>;
+*/
 
 // 12.1. Vector Single-Width Integer Add and Subtract
 defm : VPatBinarySDNode_VV_VX_VI<add, "PseudoVADD">;
@@ -400,6 +398,7 @@ foreach vti = AllIntegerVectors in {
 }
 
 // 12.3. Vector Integer Extension
+/*
 defm : VPatExtendSDNode_V<[zext, anyext], "PseudoVZEXT", "VF2",
                           AllFractionableVF2IntVectors>;
 defm : VPatExtendSDNode_V<[sext],         "PseudoVSEXT", "VF2",
@@ -412,6 +411,7 @@ defm : VPatExtendSDNode_V<[zext, anyext], "PseudoVZEXT", "VF8",
                           AllFractionableVF8IntVectors>;
 defm : VPatExtendSDNode_V<[sext],         "PseudoVSEXT", "VF8",
                           AllFractionableVF8IntVectors>;
+*/
 
 // 12.5. Vector Bitwise Logical Instructions
 defm : VPatBinarySDNode_VV_VX_VI<and, "PseudoVAND">;
@@ -727,14 +727,14 @@ foreach fvti = AllFloatVectors in {
 }
 
 // 14.17. Vector Single-Width Floating-Point/Integer Type-Convert Instructions
-defm : VPatConvertFP2ISDNode_V<fp_to_sint, "PseudoVFCVT_RTZ_X_F_V">;
-defm : VPatConvertFP2ISDNode_V<fp_to_uint, "PseudoVFCVT_RTZ_XU_F_V">;
+//defm : VPatConvertFP2ISDNode_V<fp_to_sint, "PseudoVFCVT_RTZ_X_F_V">;
+//defm : VPatConvertFP2ISDNode_V<fp_to_uint, "PseudoVFCVT_RTZ_XU_F_V">;
 defm : VPatConvertI2FPSDNode_V<sint_to_fp, "PseudoVFCVT_F_X_V">;
 defm : VPatConvertI2FPSDNode_V<uint_to_fp, "PseudoVFCVT_F_XU_V">;
 
 // 14.18. Widening Floating-Point/Integer Type-Convert Instructions
-defm : VPatWConvertFP2ISDNode_V<fp_to_sint, "PseudoVFWCVT_RTZ_X_F_V">;
-defm : VPatWConvertFP2ISDNode_V<fp_to_uint, "PseudoVFWCVT_RTZ_XU_F_V">;
+//defm : VPatWConvertFP2ISDNode_V<fp_to_sint, "PseudoVFWCVT_RTZ_X_F_V">;
+//defm : VPatWConvertFP2ISDNode_V<fp_to_uint, "PseudoVFWCVT_RTZ_XU_F_V">;
 defm : VPatWConvertI2FPSDNode_V<sint_to_fp, "PseudoVFWCVT_F_X_V">;
 defm : VPatWConvertI2FPSDNode_V<uint_to_fp, "PseudoVFWCVT_F_XU_V">;
 foreach fvtiToFWti = AllWidenableFloatVectors in {
@@ -746,8 +746,8 @@ foreach fvtiToFWti = AllWidenableFloatVectors in {
 }
 
 // 14.19. Narrowing Floating-Point/Integer Type-Convert Instructions
-defm : VPatNConvertFP2ISDNode_V<fp_to_sint, "PseudoVFNCVT_RTZ_X_F_W">;
-defm : VPatNConvertFP2ISDNode_V<fp_to_uint, "PseudoVFNCVT_RTZ_XU_F_W">;
+//defm : VPatNConvertFP2ISDNode_V<fp_to_sint, "PseudoVFNCVT_RTZ_X_F_W">;
+//defm : VPatNConvertFP2ISDNode_V<fp_to_uint, "PseudoVFNCVT_RTZ_XU_F_W">;
 defm : VPatNConvertI2FPSDNode_V<sint_to_fp, "PseudoVFNCVT_F_X_W">;
 defm : VPatNConvertI2FPSDNode_V<uint_to_fp, "PseudoVFNCVT_F_XU_W">;
 foreach fvtiToFWti = AllWidenableFloatVectors in {
