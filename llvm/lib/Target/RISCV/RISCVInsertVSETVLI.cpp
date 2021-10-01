@@ -42,13 +42,11 @@ namespace {
 class VSETVLIInfo {
   union {
     Register AVLReg;
-    unsigned AVLImm;
   };
 
   enum : uint8_t {
     Uninitialized,
     AVLIsReg,
-    AVLIsImm,
     Unknown,
   } State = Uninitialized;
 
@@ -63,7 +61,7 @@ class VSETVLIInfo {
 
 public:
   VSETVLIInfo()
-      : AVLImm(0), TailAgnostic(false), MaskAgnostic(false), MaskRegOp(false),
+      : TailAgnostic(false), MaskAgnostic(false), MaskRegOp(false),
         StoreOp(false), SEWLMULRatioOnly(false) {}
 
   static VSETVLIInfo getUnknown() {
@@ -81,20 +79,10 @@ public:
     State = AVLIsReg;
   }
 
-  void setAVLImm(unsigned Imm) {
-    AVLImm = Imm;
-    State = AVLIsImm;
-  }
-
-  bool hasAVLImm() const { return State == AVLIsImm; }
   bool hasAVLReg() const { return State == AVLIsReg; }
   Register getAVLReg() const {
     assert(hasAVLReg());
     return AVLReg;
-  }
-  unsigned getAVLImm() const {
-    assert(hasAVLImm());
-    return AVLImm;
   }
 
   bool hasSameAVL(const VSETVLIInfo &Other) const {
@@ -104,9 +92,6 @@ public:
            "Can't compare AVL in unknown state");
     if (hasAVLReg() && Other.hasAVLReg())
       return getAVLReg() == Other.getAVLReg();
-
-    if (hasAVLImm() && Other.hasAVLImm())
-      return getAVLImm() == Other.getAVLImm();
 
     return false;
   }
@@ -450,10 +435,7 @@ static VSETVLIInfo computeInfoForInstr(const MachineInstr &MI, uint64_t TSFlags,
     if (VLOp.isImm()) {
       int64_t Imm = VLOp.getImm();
       // Conver the VLMax sentintel to X0 register.
-      if (Imm == RISCV::VLMaxSentinel)
-        InstrInfo.setAVLReg(RISCV::X0);
-      else
-        InstrInfo.setAVLImm(Imm);
+      InstrInfo.setAVLReg(RISCV::X0);
     } else {
       InstrInfo.setAVLReg(VLOp.getReg());
     }

@@ -1167,6 +1167,9 @@ RISCVII::VLMUL RISCVTargetLowering::getLMUL(MVT VT) {
   switch (KnownSize) {
   default:
     llvm_unreachable("Invalid LMUL.");
+  case 8:
+  case 16:
+  case 32:
   case 64:
     return RISCVII::VLMUL::LMUL_1;
   case 128:
