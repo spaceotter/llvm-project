@@ -329,12 +329,11 @@ inline static bool isValidSEW(unsigned SEW) {
 }
 
 // Is this a LMUL value that can be encoded into the VTYPE format.
-inline static bool isValidLMUL(unsigned LMUL, bool Fractional) {
-  return isPowerOf2_32(LMUL) && LMUL <= 8 && (!Fractional || LMUL != 1);
+inline static bool isValidLMUL(unsigned LMUL) {
+  return isPowerOf2_32(LMUL) && LMUL <= 8;
 }
 
-unsigned encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW, bool TailAgnostic,
-                     bool MaskAgnostic);
+unsigned encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW);
 
 inline static RISCVII::VLMUL getVLMUL(unsigned VType) {
   unsigned VLMUL = VType & 0x3;
@@ -350,13 +349,9 @@ inline static unsigned decodeVSEW(unsigned VSEW) {
 }
 
 inline static unsigned getSEW(unsigned VType) {
-  unsigned VSEW = (VType >> 2) & 0x7;
+  unsigned VSEW = (VType >> 3) & 0x7;
   return decodeVSEW(VSEW);
 }
-
-inline static bool isTailAgnostic(unsigned VType) { return VType & 0x40; }
-
-inline static bool isMaskAgnostic(unsigned VType) { return VType & 0x80; }
 
 void printVType(unsigned VType, raw_ostream &OS);
 

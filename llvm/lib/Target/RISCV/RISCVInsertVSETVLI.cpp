@@ -53,15 +53,13 @@ class VSETVLIInfo {
   // Fields from VTYPE.
   RISCVII::VLMUL VLMul = RISCVII::LMUL_1;
   uint8_t SEW = 0;
-  uint8_t TailAgnostic : 1;
-  uint8_t MaskAgnostic : 1;
   uint8_t MaskRegOp : 1;
   uint8_t StoreOp : 1;
   uint8_t SEWLMULRatioOnly : 1;
 
 public:
   VSETVLIInfo()
-      : TailAgnostic(false), MaskAgnostic(false), MaskRegOp(false),
+      : MaskRegOp(false),
         StoreOp(false), SEWLMULRatioOnly(false) {}
 
   static VSETVLIInfo getUnknown() {
@@ -101,17 +99,13 @@ public:
            "Can't set VTYPE for uninitialized or unknown");
     VLMul = RISCVVType::getVLMUL(VType);
     SEW = RISCVVType::getSEW(VType);
-    TailAgnostic = RISCVVType::isTailAgnostic(VType);
-    MaskAgnostic = RISCVVType::isMaskAgnostic(VType);
   }
-  void setVTYPE(RISCVII::VLMUL L, unsigned S, bool TA, bool MA, bool MRO,
+  void setVTYPE(RISCVII::VLMUL L, unsigned S, bool MRO,
                 bool IsStore) {
     assert(isValid() && !isUnknown() &&
            "Can't set VTYPE for uninitialized or unknown");
     VLMul = L;
     SEW = S;
-    TailAgnostic = TA;
-    MaskAgnostic = MA;
     MaskRegOp = MRO;
     StoreOp = IsStore;
   }
@@ -119,7 +113,7 @@ public:
   unsigned encodeVTYPE() const {
     assert(isValid() && !isUnknown() && !SEWLMULRatioOnly &&
            "Can't encode VTYPE for uninitialized or unknown");
-    return RISCVVType::encodeVTYPE(VLMul, SEW, TailAgnostic, MaskAgnostic);
+    return RISCVVType::encodeVTYPE(VLMul, SEW);
   }
 
   bool hasSEWLMULRatioOnly() const { return SEWLMULRatioOnly; }
@@ -131,9 +125,8 @@ public:
            "Can't compare VTYPE in unknown state");
     assert(!SEWLMULRatioOnly && !Other.SEWLMULRatioOnly &&
            "Can't compare when only LMUL/SEW ratio is valid.");
-    return std::tie(VLMul, SEW, TailAgnostic, MaskAgnostic) ==
-           std::tie(Other.VLMul, Other.SEW, Other.TailAgnostic,
-                    Other.MaskAgnostic);
+    return std::tie(VLMul, SEW) ==
+           std::tie(Other.VLMul, Other.SEW);
   }
 
   static unsigned getSEWLMULRatio(unsigned SEW, RISCVII::VLMUL VLMul) {
@@ -197,9 +190,7 @@ public:
     // If this is a mask reg operation, it only cares about VLMAX.
     // FIXME: Mask reg operations are probably ok if "this" VLMAX is larger
     // than "InstrInfo".
-    if (InstrInfo.MaskRegOp && hasSameVLMAX(InstrInfo) &&
-        TailAgnostic == InstrInfo.TailAgnostic &&
-        MaskAgnostic == InstrInfo.MaskAgnostic)
+    if (InstrInfo.MaskRegOp && hasSameVLMAX(InstrInfo))
       return true;
 
     // Store instructions don't use the policy fields.
@@ -225,8 +216,7 @@ public:
       return false;
 
     // Stores can ignore the tail and mask policies.
-    if (!InstrInfo.StoreOp && (TailAgnostic != InstrInfo.TailAgnostic ||
-                               MaskAgnostic != InstrInfo.MaskAgnostic))
+    if (!InstrInfo.StoreOp)
       return false;
 
     return getSEWLMULRatio() == getSEWLMULRatio(EEW, InstrInfo.VLMul);
@@ -441,8 +431,7 @@ static VSETVLIInfo computeInfoForInstr(const MachineInstr &MI, uint64_t TSFlags,
     }
   } else
     InstrInfo.setAVLReg(RISCV::NoRegister);
-  InstrInfo.setVTYPE(VLMul, SEW, /*TailAgnostic*/ TailAgnostic,
-                     /*MaskAgnostic*/ false, MaskRegOp, StoreOp);
+  InstrInfo.setVTYPE(VLMul, SEW, MaskRegOp, StoreOp);
 
   return InstrInfo;
 }

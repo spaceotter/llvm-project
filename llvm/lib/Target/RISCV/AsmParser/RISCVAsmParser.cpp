@@ -1595,7 +1595,7 @@ OperandMatchResultTy RISCVAsmParser::parseVTypeI(OperandVector &Operands) {
     unsigned Lmul;
     if (Name.getAsInteger(10, Lmul))
       goto MatchFail;
-    if (!RISCVVType::isValidLMUL(Lmul, false))
+    if (!RISCVVType::isValidLMUL(Lmul))
       goto MatchFail;
 
     unsigned LmulLog2 = Log2_32(Lmul);
@@ -1603,7 +1603,7 @@ OperandMatchResultTy RISCVAsmParser::parseVTypeI(OperandVector &Operands) {
         static_cast<RISCVII::VLMUL>(LmulLog2);
 
     unsigned VTypeI =
-        RISCVVType::encodeVTYPE(VLMUL, Sew, false, false);
+        RISCVVType::encodeVTYPE(VLMUL, Sew);
     Operands.push_back(RISCVOperand::createVType(VTypeI, S, isRV64()));
     return MatchOperand_Success;
   }

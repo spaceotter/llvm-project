@@ -107,17 +107,11 @@ void validate(const Triple &TT, const FeatureBitset &FeatureBits) {
 // 6    | vta        | Vector tail agnostic
 // 5:3  | vsew[2:0]  | Standard element width (SEW) setting
 // 2:0  | vlmul[2:0] | Vector register group multiplier (LMUL) setting
-unsigned RISCVVType::encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW,
-                                 bool TailAgnostic, bool MaskAgnostic) {
+unsigned RISCVVType::encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW) {
   assert(isValidSEW(SEW) && "Invalid SEW");
   unsigned VLMULBits = static_cast<unsigned>(VLMUL);
   unsigned VSEWBits = Log2_32(SEW) - 3;
-  unsigned VTypeI = (VSEWBits << 3) | (VLMULBits & 0x7);
-  if (TailAgnostic)
-    VTypeI |= 0x40;
-  if (MaskAgnostic)
-    VTypeI |= 0x80;
-
+  unsigned VTypeI = (VSEWBits << 2) | (VLMULBits & 0x3);
   return VTypeI;
 }
 

@@ -832,8 +832,7 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       RISCVII::VLMUL VLMul = static_cast<RISCVII::VLMUL>(
           Node->getConstantOperandVal(Offset + 1) & 0x7);
 
-      unsigned VTypeI = RISCVVType::encodeVTYPE(
-          VLMul, SEW, /*TailAgnostic*/ true, /*MaskAgnostic*/ false);
+      unsigned VTypeI = RISCVVType::encodeVTYPE(VLMul, SEW);
       SDValue VTypeIOp = CurDAG->getTargetConstant(VTypeI, DL, XLenVT);
 
       SDValue VLOperand;
