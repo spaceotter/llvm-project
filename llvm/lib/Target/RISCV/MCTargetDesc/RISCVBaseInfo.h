@@ -104,6 +104,11 @@ enum VLMUL : uint8_t {
   LMUL_8,
 };
 
+enum {
+  TAIL_UNDISTURBED = 0,
+  TAIL_AGNOSTIC = 1,
+};
+
 // Helper functions to read TSFlags.
 /// \returns the format of the instruction.
 static inline unsigned getFormat(uint64_t TSFlags) {
@@ -319,6 +324,10 @@ namespace RISCVFeatures {
 // Validates if the given combination of features are valid for the target
 // triple. Exits with report_fatal_error if not.
 void validate(const Triple &TT, const FeatureBitset &FeatureBits);
+
+// Convert FeatureBitset to FeatureVector.
+void toFeatureVector(std::vector<std::string> &FeatureVector,
+                     const FeatureBitset &FeatureBits);
 
 } // namespace RISCVFeatures
 

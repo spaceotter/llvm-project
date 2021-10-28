@@ -302,33 +302,18 @@ _LIBCPP_PUSH_MACROS
 _LIBCPP_BEGIN_NAMESPACE_STD
 
 template <bool>
-class _LIBCPP_TEMPLATE_VIS __vector_base_common
-{
-protected:
-    _LIBCPP_INLINE_VISIBILITY __vector_base_common() {}
-    _LIBCPP_NORETURN void __throw_length_error() const;
-    _LIBCPP_NORETURN void __throw_out_of_range() const;
+struct __vector_base_common;
+
+template <>
+struct __vector_base_common<true> {
+    // Both are defined in vector.cpp
+    _LIBCPP_NORETURN _LIBCPP_EXPORTED_FROM_ABI void __throw_length_error() const;
+    _LIBCPP_NORETURN _LIBCPP_EXPORTED_FROM_ABI void __throw_out_of_range() const;
 };
-
-template <bool __b>
-void
-__vector_base_common<__b>::__throw_length_error() const
-{
-    _VSTD::__throw_length_error("vector");
-}
-
-template <bool __b>
-void
-__vector_base_common<__b>::__throw_out_of_range() const
-{
-    _VSTD::__throw_out_of_range("vector");
-}
-
-_LIBCPP_EXTERN_TEMPLATE(class _LIBCPP_EXTERN_TEMPLATE_TYPE_VIS __vector_base_common<true>)
 
 template <class _Tp, class _Allocator>
 class __vector_base
-    : protected __vector_base_common<true>
+    : protected __vector_base_common<true> // This base class is historical, but it needs to remain for ABI compatibility
 {
 public:
     typedef _Allocator                               allocator_type;
@@ -1421,7 +1406,7 @@ inline _LIBCPP_INLINE_VISIBILITY
 vector<_Tp, _Allocator>&
 vector<_Tp, _Allocator>::operator=(const vector& __x)
 {
-    if (this != &__x)
+    if (this != _VSTD::addressof(__x))
     {
         __base::__copy_assign_alloc(__x);
         assign(__x.__begin_, __x.__end_);
@@ -1605,6 +1590,8 @@ vector<_Tp, _Allocator>::reserve(size_type __n)
 {
     if (__n > capacity())
     {
+        if (__n > max_size())
+            this->__throw_length_error();
         allocator_type& __a = this->__alloc();
         __split_buffer<value_type, allocator_type&> __v(__n, size(), __a);
         __swap_out_circular_buffer(__v);
@@ -2874,7 +2861,7 @@ template <class _Allocator>
 vector<bool, _Allocator>&
 vector<bool, _Allocator>::operator=(const vector& __v)
 {
-    if (this != &__v)
+    if (this != _VSTD::addressof(__v))
     {
         __copy_assign_alloc(__v);
         if (__v.__size_)
@@ -2978,7 +2965,7 @@ vector<bool, _Allocator>::assign(size_type __n, const value_type& __x)
             __size_ = __n;
         else
         {
-            vector __v(__alloc());
+            vector __v(get_allocator());
             __v.reserve(__recommend(__n));
             __v.__size_ = __n;
             swap(__v);
@@ -3033,7 +3020,9 @@ vector<bool, _Allocator>::reserve(size_type __n)
 {
     if (__n > capacity())
     {
-        vector __v(this->__alloc());
+        if (__n > max_size())
+            this->__throw_length_error();
+        vector __v(this->get_allocator());
         __v.__vallocate(__n);
         __v.__construct_at_end(this->begin(), this->end());
         swap(__v);
@@ -3103,7 +3092,7 @@ vector<bool, _Allocator>::insert(const_iterator __position, const value_type& __
     }
     else
     {
-        vector __v(__alloc());
+        vector __v(get_allocator());
         __v.reserve(__recommend(__size_ + 1));
         __v.__size_ = __size_ + 1;
         __r = _VSTD::copy(cbegin(), __position, __v.begin());
@@ -3129,7 +3118,7 @@ vector<bool, _Allocator>::insert(const_iterator __position, size_type __n, const
     }
     else
     {
-        vector __v(__alloc());
+        vector __v(get_allocator());
         __v.reserve(__recommend(__size_ + __n));
         __v.__size_ = __size_ + __n;
         __r = _VSTD::copy(cbegin(), __position, __v.begin());
@@ -3158,7 +3147,7 @@ vector<bool, _Allocator>::insert(const_iterator __position, _InputIterator __fir
         ++this->__size_;
         back() = *__first;
     }
-    vector __v(__alloc());
+    vector __v(get_allocator());
     if (__first != __last)
     {
 #ifndef _LIBCPP_NO_EXCEPTIONS
@@ -3208,7 +3197,7 @@ vector<bool, _Allocator>::insert(const_iterator __position, _ForwardIterator __f
     }
     else
     {
-        vector __v(__alloc());
+        vector __v(get_allocator());
         __v.reserve(__recommend(__size_ + __n));
         __v.__size_ = __size_ + __n;
         __r = _VSTD::copy(cbegin(), __position, __v.begin());
@@ -3275,7 +3264,7 @@ vector<bool, _Allocator>::resize(size_type __sz, value_type __x)
         }
         else
         {
-            vector __v(__alloc());
+            vector __v(get_allocator());
             __v.reserve(__recommend(__size_ + __n));
             __v.__size_ = __size_ + __n;
             __r = _VSTD::copy(cbegin(), cend(), __v.begin());
