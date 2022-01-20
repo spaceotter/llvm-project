@@ -174,8 +174,8 @@ class RVInst<dag outs, dag ins, string opcodestr, string argstr,
   RISCVVConstraint RVVConstraint = NoConstraint;
   let TSFlags{7-5} = RVVConstraint.Value;
 
-  bits<3> VLMul = 0;
-  let TSFlags{10-8} = VLMul;
+  bits<2> VLMul = 0;
+  let TSFlags{10-9} = VLMul;
 
   bit HasDummyMask = 0;
   let TSFlags{11} = HasDummyMask;

@@ -50,7 +50,7 @@ defvar TAIL_AGNOSTIC = 1;
 // This class describes information associated to the LMUL.
 class LMULInfo<int lmul, int oct, VReg regclass, VReg wregclass,
                VReg f2regclass, VReg f4regclass, VReg f8regclass, string mx> {
-  bits<3> value = lmul; // This is encoded as the vlmul field of vtype.
+  bits<2> value = lmul; // This is encoded as the vlmul field of vtype.
   VReg vrclass = regclass;
   VReg wvrclass = wregclass;
   VReg f8vrclass = f8regclass;
@@ -61,38 +61,34 @@ class LMULInfo<int lmul, int oct, VReg regclass, VReg wregclass,
 }
 
 // Associate LMUL with tablegen records of register classes.
-def V_M1  : LMULInfo<0b000,  8,   VR,        VRM2,   VR,   VR, VR, "M1">;
-def V_M2  : LMULInfo<0b001, 16, VRM2,        VRM4,   VR,   VR, VR, "M2">;
-def V_M4  : LMULInfo<0b010, 32, VRM4,        VRM8, VRM2,   VR, VR, "M4">;
-def V_M8  : LMULInfo<0b011, 64, VRM8,/*NoVReg*/VR, VRM4, VRM2, VR, "M8">;
-
-def V_MF8 : LMULInfo<0b101, 1, VR, VR,/*NoVReg*/VR,/*NoVReg*/VR,/*NoVReg*/VR, "MF8">;
-def V_MF4 : LMULInfo<0b110, 2, VR, VR,          VR,/*NoVReg*/VR,/*NoVReg*/VR, "MF4">;
-def V_MF2 : LMULInfo<0b111, 4, VR, VR,          VR,          VR,/*NoVReg*/VR, "MF2">;
+def V_M1  : LMULInfo<0b00,  8,   VR,        VRM2,   VR,   VR, VR, "M1">;
+def V_M2  : LMULInfo<0b01, 16, VRM2,        VRM4,   VR,   VR, VR, "M2">;
+def V_M4  : LMULInfo<0b10, 32, VRM4,        VRM8, VRM2,   VR, VR, "M4">;
+def V_M8  : LMULInfo<0b11, 64, VRM8,/*NoVReg*/VR, VRM4, VRM2, VR, "M8">;
 
 // Used to iterate over all possible LMULs.
-defvar MxList = [V_MF8, V_MF4, V_MF2, V_M1, V_M2, V_M4, V_M8];
+defvar MxList = [V_M1, V_M2, V_M4, V_M8];
 // For floating point which don't need MF8.
-defvar MxListF = [V_MF4, V_MF2, V_M1, V_M2, V_M4, V_M8];
+defvar MxListF = [V_M1, V_M2, V_M4, V_M8];
 
 // Used for widening and narrowing instructions as it doesn't contain M8.
-defvar MxListW = [V_MF8, V_MF4, V_MF2, V_M1, V_M2, V_M4];
+defvar MxListW = [V_M1, V_M2, V_M4];
 // For floating point which don't need MF8.
-defvar MxListFW = [V_MF4, V_MF2, V_M1, V_M2, V_M4];
+defvar MxListFW = [V_M1, V_M2, V_M4];
 
 // Use for zext/sext.vf2
-defvar MxListVF2 = [V_MF4, V_MF2, V_M1, V_M2, V_M4, V_M8];
+defvar MxListVF2 = [V_M2, V_M4, V_M8];
 
 // Use for zext/sext.vf4
-defvar MxListVF4 = [V_MF2, V_M1, V_M2, V_M4, V_M8];
+defvar MxListVF4 = [V_M4, V_M8];
 
 // Use for zext/sext.vf8
-defvar MxListVF8 = [V_M1, V_M2, V_M4, V_M8];
+defvar MxListVF8 = [V_M8];
 
 class MxSet<int eew> {
-  list<LMULInfo> m = !cond(!eq(eew, 8) : [V_MF8, V_MF4, V_MF2, V_M1, V_M2, V_M4, V_M8],
-                           !eq(eew, 16) : [V_MF4, V_MF2, V_M1, V_M2, V_M4, V_M8],
-                           !eq(eew, 32) : [V_MF2, V_M1, V_M2, V_M4, V_M8],
+  list<LMULInfo> m = !cond(!eq(eew, 8) : [V_M1, V_M2, V_M4, V_M8],
+                           !eq(eew, 16) : [V_M1, V_M2, V_M4, V_M8],
+                           !eq(eew, 32) : [V_M1, V_M2, V_M4, V_M8],
                            !eq(eew, 64) : [V_M1, V_M2, V_M4, V_M8]);
 }
 
@@ -144,10 +140,7 @@ def VLMax : OutPatFrag<(ops), (XLenVT -1)>;
 defvar EEWList = [8, 16, 32, 64];
 
 class SegRegClass<LMULInfo m, int nf> {
-  VReg RC = !cast<VReg>("VRN" # nf # !cond(!eq(m.value, V_MF8.value): V_M1.MX,
-                                           !eq(m.value, V_MF4.value): V_M1.MX,
-                                           !eq(m.value, V_MF2.value): V_M1.MX,
-                                           true: m.MX));
+  VReg RC = !cast<VReg>("VRN" # nf # m.MX);
 }
 
 //===----------------------------------------------------------------------===//
@@ -186,14 +179,6 @@ class GroupVTypeInfo<ValueType Vec, ValueType VecM1, ValueType Mas, int Sew,
 defset list<VTypeInfo> AllVectors = {
   defset list<VTypeInfo> AllIntegerVectors = {
     defset list<VTypeInfo> NoGroupIntegerVectors = {
-      defset list<VTypeInfo> FractionalGroupIntegerVectors = {
-        def VI8MF8: VTypeInfo<vint8mf8_t,  vbool64_t,  8, VR, V_MF8>;
-        def VI8MF4: VTypeInfo<vint8mf4_t,  vbool32_t,  8, VR, V_MF4>;
-        def VI8MF2: VTypeInfo<vint8mf2_t,  vbool16_t,  8, VR, V_MF2>;
-        def VI16MF4: VTypeInfo<vint16mf4_t, vbool64_t, 16, VR, V_MF4>;
-        def VI16MF2: VTypeInfo<vint16mf2_t, vbool32_t, 16, VR, V_MF2>;
-        def VI32MF2: VTypeInfo<vint32mf2_t, vbool64_t, 32, VR, V_MF2>;
-      }
       def VI8M1: VTypeInfo<vint8m1_t,   vbool8_t,   8, VR, V_M1>;
       def VI16M1: VTypeInfo<vint16m1_t,  vbool16_t, 16, VR, V_M1>;
       def VI32M1: VTypeInfo<vint32m1_t,  vbool32_t, 32, VR, V_M1>;
@@ -220,11 +205,6 @@ defset list<VTypeInfo> AllVectors = {
 
   defset list<VTypeInfo> AllFloatVectors = {
     defset list<VTypeInfo> NoGroupFloatVectors = {
-      defset list<VTypeInfo> FractionalGroupFloatVectors = {
-        def VF16MF4: VTypeInfo<vfloat16mf4_t, vbool64_t, 16, VR, V_MF4, f16, FPR16>;
-        def VF16MF2: VTypeInfo<vfloat16mf2_t, vbool32_t, 16, VR, V_MF2, f16, FPR16>;
-        def VF32MF2: VTypeInfo<vfloat32mf2_t,vbool64_t, 32, VR, V_MF2, f32, FPR32>;
-      }
       def VF16M1:  VTypeInfo<vfloat16m1_t,  vbool16_t, 16, VR, V_M1,  f16, FPR16>;
       def VF32M1:  VTypeInfo<vfloat32m1_t, vbool32_t, 32, VR, V_M1,  f32, FPR32>;
       def VF64M1: VTypeInfo<vfloat64m1_t, vbool64_t, 64, VR, V_M1, f64, FPR64>;
@@ -282,9 +262,6 @@ class MTypeInfo<ValueType Mas, LMULInfo M, string Bx> {
 
 defset list<MTypeInfo> AllMasks = {
   // vbool<n>_t, <n> = SEW/LMUL, we assume SEW=8 and corresponding LMUL.
-  def : MTypeInfo<vbool64_t, V_MF8, "B1">;
-  def : MTypeInfo<vbool32_t, V_MF4, "B2">;
-  def : MTypeInfo<vbool16_t, V_MF2, "B4">;
   def : MTypeInfo<vbool8_t, V_M1, "B8">;
   def : MTypeInfo<vbool4_t, V_M2, "B16">;
   def : MTypeInfo<vbool2_t, V_M4, "B32">;
@@ -304,90 +281,61 @@ class VTypeInfoToFraction<VTypeInfo vti, VTypeInfo fti>
 }
 
 defset list<VTypeInfoToWide> AllWidenableIntVectors = {
-  def : VTypeInfoToWide<VI8MF8,  VI16MF4>;
-  def : VTypeInfoToWide<VI8MF4,  VI16MF2>;
-  def : VTypeInfoToWide<VI8MF2,  VI16M1>;
   def : VTypeInfoToWide<VI8M1,   VI16M2>;
   def : VTypeInfoToWide<VI8M2,   VI16M4>;
   def : VTypeInfoToWide<VI8M4,   VI16M8>;
 
-  def : VTypeInfoToWide<VI16MF4, VI32MF2>;
-  def : VTypeInfoToWide<VI16MF2, VI32M1>;
   def : VTypeInfoToWide<VI16M1,  VI32M2>;
   def : VTypeInfoToWide<VI16M2,  VI32M4>;
   def : VTypeInfoToWide<VI16M4,  VI32M8>;
 
-  def : VTypeInfoToWide<VI32MF2, VI64M1>;
   def : VTypeInfoToWide<VI32M1,  VI64M2>;
   def : VTypeInfoToWide<VI32M2,  VI64M4>;
   def : VTypeInfoToWide<VI32M4,  VI64M8>;
 }
 
 defset list<VTypeInfoToWide> AllWidenableFloatVectors = {
-  def : VTypeInfoToWide<VF16MF4, VF32MF2>;
-  def : VTypeInfoToWide<VF16MF2, VF32M1>;
   def : VTypeInfoToWide<VF16M1, VF32M2>;
   def : VTypeInfoToWide<VF16M2, VF32M4>;
   def : VTypeInfoToWide<VF16M4, VF32M8>;
 
-  def : VTypeInfoToWide<VF32MF2, VF64M1>;
   def : VTypeInfoToWide<VF32M1, VF64M2>;
   def : VTypeInfoToWide<VF32M2, VF64M4>;
   def : VTypeInfoToWide<VF32M4, VF64M8>;
 }
 
 defset list<VTypeInfoToFraction> AllFractionableVF2IntVectors = {
-  def : VTypeInfoToFraction<VI16MF4, VI8MF8>;
-  def : VTypeInfoToFraction<VI16MF2, VI8MF4>;
-  def : VTypeInfoToFraction<VI16M1, VI8MF2>;
   def : VTypeInfoToFraction<VI16M2, VI8M1>;
   def : VTypeInfoToFraction<VI16M4, VI8M2>;
   def : VTypeInfoToFraction<VI16M8, VI8M4>;
-  def : VTypeInfoToFraction<VI32MF2, VI16MF4>;
-  def : VTypeInfoToFraction<VI32M1, VI16MF2>;
   def : VTypeInfoToFraction<VI32M2, VI16M1>;
   def : VTypeInfoToFraction<VI32M4, VI16M2>;
   def : VTypeInfoToFraction<VI32M8, VI16M4>;
-  def : VTypeInfoToFraction<VI64M1, VI32MF2>;
   def : VTypeInfoToFraction<VI64M2, VI32M1>;
   def : VTypeInfoToFraction<VI64M4, VI32M2>;
   def : VTypeInfoToFraction<VI64M8, VI32M4>;
 }
 
 defset list<VTypeInfoToFraction> AllFractionableVF4IntVectors = {
-  def : VTypeInfoToFraction<VI32MF2, VI8MF8>;
-  def : VTypeInfoToFraction<VI32M1, VI8MF4>;
-  def : VTypeInfoToFraction<VI32M2, VI8MF2>;
   def : VTypeInfoToFraction<VI32M4, VI8M1>;
   def : VTypeInfoToFraction<VI32M8, VI8M2>;
-  def : VTypeInfoToFraction<VI64M1, VI16MF4>;
-  def : VTypeInfoToFraction<VI64M2, VI16MF2>;
   def : VTypeInfoToFraction<VI64M4, VI16M1>;
   def : VTypeInfoToFraction<VI64M8, VI16M2>;
 }
 
 defset list<VTypeInfoToFraction> AllFractionableVF8IntVectors = {
-  def : VTypeInfoToFraction<VI64M1, VI8MF8>;
-  def : VTypeInfoToFraction<VI64M2, VI8MF4>;
-  def : VTypeInfoToFraction<VI64M4, VI8MF2>;
   def : VTypeInfoToFraction<VI64M8, VI8M1>;
 }
 
 defset list<VTypeInfoToWide> AllWidenableIntToFloatVectors = {
-  def : VTypeInfoToWide<VI8MF8, VF16MF4>;
-  def : VTypeInfoToWide<VI8MF4, VF16MF2>;
-  def : VTypeInfoToWide<VI8MF2, VF16M1>;
   def : VTypeInfoToWide<VI8M1, VF16M2>;
   def : VTypeInfoToWide<VI8M2, VF16M4>;
   def : VTypeInfoToWide<VI8M4, VF16M8>;
 
-  def : VTypeInfoToWide<VI16MF4, VF32MF2>;
-  def : VTypeInfoToWide<VI16MF2, VF32M1>;
   def : VTypeInfoToWide<VI16M1, VF32M2>;
   def : VTypeInfoToWide<VI16M2, VF32M4>;
   def : VTypeInfoToWide<VI16M4, VF32M8>;
 
-  def : VTypeInfoToWide<VI32MF2, VF64M1>;
   def : VTypeInfoToWide<VI32M1, VF64M2>;
   def : VTypeInfoToWide<VI32M2, VF64M4>;
   def : VTypeInfoToWide<VI32M4, VF64M8>;
@@ -424,12 +372,12 @@ def RISCVVIntrinsicsTable : GenericTable {
   let PrimaryKeyName = "getRISCVVIntrinsicInfo";
 }
 
-class RISCVVLE<bit M, bit Str, bit F, bits<3> S, bits<3> L> {
+class RISCVVLE<bit M, bit Str, bit F, bits<3> S, bits<2> L> {
   bits<1> Masked = M;
   bits<1> Strided = Str;
   bits<1> FF = F;
   bits<3> Log2SEW = S;
-  bits<3> LMUL = L;
+  bits<2> LMUL = L;
   Pseudo Pseudo = !cast<Pseudo>(NAME);
 }
 
@@ -441,11 +389,11 @@ def RISCVVLETable : GenericTable {
   let PrimaryKeyName = "getVLEPseudo";
 }
 
-class RISCVVSE<bit M, bit Str, bits<3> S, bits<3> L> {
+class RISCVVSE<bit M, bit Str, bits<3> S, bits<2> L> {
   bits<1> Masked = M;
   bits<1> Strided = Str;
   bits<3> Log2SEW = S;
-  bits<3> LMUL = L;
+  bits<2> LMUL = L;
   Pseudo Pseudo = !cast<Pseudo>(NAME);
 }
 
@@ -457,18 +405,18 @@ def RISCVVSETable : GenericTable {
   let PrimaryKeyName = "getVSEPseudo";
 }
 
-class RISCVVLX_VSX<bit M, bit O, bits<3> S, bits<3> L, bits<3> IL> {
+class RISCVVLX_VSX<bit M, bit O, bits<3> S, bits<2> L, bits<2> IL> {
   bits<1> Masked = M;
   bits<1> Ordered = O;
   bits<3> Log2SEW = S;
-  bits<3> LMUL = L;
-  bits<3> IndexLMUL = IL;
+  bits<2> LMUL = L;
+  bits<2> IndexLMUL = IL;
   Pseudo Pseudo = !cast<Pseudo>(NAME);
 }
 
-class RISCVVLX<bit M, bit O, bits<3> S, bits<3> L, bits<3> IL> :
+class RISCVVLX<bit M, bit O, bits<3> S, bits<2> L, bits<2> IL> :
   RISCVVLX_VSX<M, O, S, L, IL>;
-class RISCVVSX<bit M, bit O, bits<3> S, bits<3> L, bits<3> IL> :
+class RISCVVSX<bit M, bit O, bits<3> S, bits<2> L, bits<2> IL> :
   RISCVVLX_VSX<M, O, S, L, IL>;
 
 class RISCVVLX_VSXTable : GenericTable {
@@ -487,13 +435,13 @@ def RISCVVSXTable : RISCVVLX_VSXTable {
   let PrimaryKeyName = "getVSXPseudo";
 }
 
-class RISCVVLSEG<bits<4> N, bit M, bit Str, bit F, bits<3> S, bits<3> L> {
+class RISCVVLSEG<bits<4> N, bit M, bit Str, bit F, bits<3> S, bits<2> L> {
   bits<4> NF = N;
   bits<1> Masked = M;
   bits<1> Strided = Str;
   bits<1> FF = F;
   bits<3> Log2SEW = S;
-  bits<3> LMUL = L;
+  bits<2> LMUL = L;
   Pseudo Pseudo = !cast<Pseudo>(NAME);
 }
 
@@ -505,13 +453,13 @@ def RISCVVLSEGTable : GenericTable {
   let PrimaryKeyName = "getVLSEGPseudo";
 }
 
-class RISCVVLXSEG<bits<4> N, bit M, bit O, bits<3> S, bits<3> L, bits<3> IL> {
+class RISCVVLXSEG<bits<4> N, bit M, bit O, bits<3> S, bits<2> L, bits<2> IL> {
   bits<4> NF = N;
   bits<1> Masked = M;
   bits<1> Ordered = O;
   bits<3> Log2SEW = S;
-  bits<3> LMUL = L;
-  bits<3> IndexLMUL = IL;
+  bits<2> LMUL = L;
+  bits<2> IndexLMUL = IL;
   Pseudo Pseudo = !cast<Pseudo>(NAME);
 }
 
@@ -523,12 +471,12 @@ def RISCVVLXSEGTable : GenericTable {
   let PrimaryKeyName = "getVLXSEGPseudo";
 }
 
-class RISCVVSSEG<bits<4> N, bit M, bit Str, bits<3> S, bits<3> L> {
+class RISCVVSSEG<bits<4> N, bit M, bit Str, bits<3> S, bits<2> L> {
   bits<4> NF = N;
   bits<1> Masked = M;
   bits<1> Strided = Str;
   bits<3> Log2SEW = S;
-  bits<3> LMUL = L;
+  bits<2> LMUL = L;
   Pseudo Pseudo = !cast<Pseudo>(NAME);
 }
 
@@ -540,13 +488,13 @@ def RISCVVSSEGTable : GenericTable {
   let PrimaryKeyName = "getVSSEGPseudo";
 }
 
-class RISCVVSXSEG<bits<4> N, bit M, bit O, bits<3> S, bits<3> L, bits<3> IL> {
+class RISCVVSXSEG<bits<4> N, bit M, bit O, bits<3> S, bits<2> L, bits<2> IL> {
   bits<4> NF = N;
   bits<1> Masked = M;
   bits<1> Ordered = O;
   bits<3> Log2SEW = S;
-  bits<3> LMUL = L;
-  bits<3> IndexLMUL = IL;
+  bits<2> LMUL = L;
+  bits<2> IndexLMUL = IL;
   Pseudo Pseudo = !cast<Pseudo>(NAME);
 }
 
@@ -567,9 +515,6 @@ class PseudoToVInst<string PseudoInst> {
                  !subst("_M4", "",
                  !subst("_M2", "",
                  !subst("_M1", "",
-                 !subst("_MF2", "",
-                 !subst("_MF4", "",
-                 !subst("_MF8", "",
                  !subst("_B1", "",
                  !subst("_B2", "",
                  !subst("_B4", "",
@@ -582,7 +527,13 @@ class PseudoToVInst<string PseudoInst> {
                  !subst("F16", "F",
                  !subst("F32", "F",
                  !subst("F64", "F",
-                 !subst("Pseudo", "", PseudoInst))))))))))))))))))));
+                 !subst("E8", "B",
+                 !subst("E16", "H",
+                 !subst("E32", "W",
+                 !subst("EI8", "B",
+                 !subst("EI16", "H",
+                 !subst("EI32", "W",
+                 !subst("Pseudo", "", PseudoInst)))))))))))))))))))))));
 }
 
 // The destination vector register group for a masked vector instruction cannot
@@ -688,7 +639,7 @@ class VPseudoSLoadMask<VReg RetClass, int EEW>:
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoILoadNoMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoILoadNoMask<VReg RetClass, VReg IdxClass, int EEW, bits<2> LMUL,
                          bit Ordered, bit EarlyClobber>:
       Pseudo<(outs RetClass:$rd),
              (ins GPR:$rs1, IdxClass:$rs2, AVL:$vl, ixlenimm:$sew),[]>,
@@ -704,7 +655,7 @@ class VPseudoILoadNoMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoILoadMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoILoadMask<VReg RetClass, VReg IdxClass, int EEW, bits<2> LMUL,
                        bit Ordered, bit EarlyClobber>:
       Pseudo<(outs GetVRegNoV0<RetClass>.R:$rd),
               (ins GetVRegNoV0<RetClass>.R:$merge,
@@ -946,7 +897,7 @@ class VPseudoTiedBinaryNoMask<VReg RetClass,
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoIStoreNoMask<VReg StClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoIStoreNoMask<VReg StClass, VReg IdxClass, int EEW, bits<2> LMUL,
                           bit Ordered>:
       Pseudo<(outs),
               (ins StClass:$rd, GPR:$rs1, IdxClass:$rs2, AVL:$vl, ixlenimm:$sew),[]>,
@@ -961,7 +912,7 @@ class VPseudoIStoreNoMask<VReg StClass, VReg IdxClass, int EEW, bits<3> LMUL,
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoIStoreMask<VReg StClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoIStoreMask<VReg StClass, VReg IdxClass, int EEW, bits<2> LMUL,
                         bit Ordered>:
       Pseudo<(outs),
               (ins StClass:$rd, GPR:$rs1, IdxClass:$rs2, VMaskOp:$vm, AVL:$vl, ixlenimm:$sew),[]>,
@@ -1184,7 +1135,7 @@ class VPseudoSSegLoadMask<VReg RetClass, int EEW, bits<4> NF>:
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoISegLoadNoMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoISegLoadNoMask<VReg RetClass, VReg IdxClass, int EEW, bits<2> LMUL,
                             bits<4> NF, bit Ordered>:
       Pseudo<(outs RetClass:$rd),
              (ins GPR:$rs1, IdxClass:$offset, AVL:$vl, ixlenimm:$sew),[]>,
@@ -1202,7 +1153,7 @@ class VPseudoISegLoadNoMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoISegLoadMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoISegLoadMask<VReg RetClass, VReg IdxClass, int EEW, bits<2> LMUL,
                           bits<4> NF, bit Ordered>:
       Pseudo<(outs GetVRegNoV0<RetClass>.R:$rd),
              (ins GetVRegNoV0<RetClass>.R:$merge, GPR:$rs1,
@@ -1279,7 +1230,7 @@ class VPseudoSSegStoreMask<VReg ValClass, int EEW, bits<4> NF>:
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoISegStoreNoMask<VReg ValClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoISegStoreNoMask<VReg ValClass, VReg IdxClass, int EEW, bits<2> LMUL,
                              bits<4> NF, bit Ordered>:
       Pseudo<(outs),
              (ins ValClass:$rd, GPR:$rs1, IdxClass: $index,
@@ -1295,7 +1246,7 @@ class VPseudoISegStoreNoMask<VReg ValClass, VReg IdxClass, int EEW, bits<3> LMUL
   let BaseInstr = !cast<Instruction>(PseudoToVInst<NAME>.VInst);
 }
 
-class VPseudoISegStoreMask<VReg ValClass, VReg IdxClass, int EEW, bits<3> LMUL,
+class VPseudoISegStoreMask<VReg ValClass, VReg IdxClass, int EEW, bits<2> LMUL,
                            bits<4> NF, bit Ordered>:
       Pseudo<(outs),
              (ins ValClass:$rd, GPR:$rs1, IdxClass: $index,
@@ -1374,7 +1325,7 @@ multiclass VPseudoILoad<bit Ordered> {
         defvar octuple_lmul = lmul.octuple;
         // Calculate emul = eew * lmul / sew
         defvar octuple_emul = !srl(!mul(eew, octuple_lmul), log2<sew>.val);
-        if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+        if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
           defvar LInfo = lmul.MX;
           defvar IdxLInfo = octuple_to_str<octuple_emul>.ret;
           defvar idx_lmul = !cast<LMULInfo>("V_" # IdxLInfo);
@@ -1441,7 +1392,7 @@ multiclass VPseudoIStore<bit Ordered> {
         defvar octuple_lmul = lmul.octuple;
         // Calculate emul = eew * lmul / sew
         defvar octuple_emul = !srl(!mul(eew, octuple_lmul), log2<sew>.val);
-        if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+        if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
           defvar LInfo = lmul.MX;
           defvar IdxLInfo = octuple_to_str<octuple_emul>.ret;
           defvar idx_lmul = !cast<LMULInfo>("V_" # IdxLInfo);
@@ -1608,7 +1559,7 @@ multiclass VPseudoVGTR_VV_EEW<int eew, string Constraint = ""> {
       defvar octuple_lmul = m.octuple;
       // emul = lmul * eew / sew
       defvar octuple_emul = !srl(!mul(octuple_lmul, eew), log2<sew>.val);
-      if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+      if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
         defvar emulMX = octuple_to_str<octuple_emul>.ret;
         defvar emul = !cast<LMULInfo>("V_" # emulMX);
         defm _VV : VPseudoBinaryEmul<m.vrclass, m.vrclass, emul.vrclass, m, emul, Constraint>,
@@ -2471,7 +2422,7 @@ multiclass VPseudoISegLoad<bit Ordered> {
         defvar octuple_lmul = val_lmul.octuple;
         // Calculate emul = eew * lmul / sew
         defvar octuple_emul = !srl(!mul(idx_eew, octuple_lmul), log2<sew>.val);
-        if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+        if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
           defvar ValLInfo = val_lmul.MX;
           defvar IdxLInfo = octuple_to_str<octuple_emul>.ret;
           defvar idx_lmul = !cast<LMULInfo>("V_" # IdxLInfo);
@@ -3787,7 +3738,6 @@ let hasSideEffects = 1, mayLoad = 0, mayStore = 0, Defs = [VL, VTYPE] in {
 // verifier, we also need a GPRX0 instruction for the special encodings.
 def PseudoVSETVLI : Pseudo<(outs GPR:$rd), (ins GPRNoX0:$rs1, VTypeIOp11:$vtypei), []>;
 def PseudoVSETVLIX0 : Pseudo<(outs GPR:$rd), (ins GPRX0:$rs1, VTypeIOp11:$vtypei), []>;
-def PseudoVSETIVLI : Pseudo<(outs GPR:$rd), (ins uimm5:$rs1, VTypeIOp10:$vtypei), []>;
 }
 
 //===----------------------------------------------------------------------===//

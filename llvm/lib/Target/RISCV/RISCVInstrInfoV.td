@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 ///
 /// This file describes the RISC-V instructions from the standard 'V' Vector
-/// extension, version 0.10.
+/// extension, version 0.8.
 /// This version is still experimental as the 'V' extension hasn't been
 /// ratified yet.
 ///
@@ -124,61 +124,55 @@ class VLFSched<int n> : Sched <[!cast<SchedReadWrite>("WriteVLDFF" # n),
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in {
 // unit-stride load vd, (rs1), vm
 class VUnitStrideLoad<RISCVWidth width, string opcodestr>
-    : RVInstVLU<0b000, width.Value{3}, LUMOPUnitStride, width.Value{2-0},
+    : RVInstVLU<0b000, LUMOPUnitStride, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, VMaskOp:$vm), opcodestr, "$vd, (${rs1})$vm">;
 
 let vm = 1, RVVConstraint = NoConstraint in {
 // unit-stride whole register load vl<nf>r.v vd, (rs1)
 class VWholeLoad<bits<3> nf, RISCVWidth width, string opcodestr, RegisterClass VRC>
-    : RVInstVLU<nf, width.Value{3}, LUMOPUnitStrideWholeReg,
-                width.Value{2-0}, (outs VRC:$vd), (ins GPR:$rs1),
+    : RVInstVLU<nf, LUMOPUnitStrideWholeReg,
+                width.Value, (outs VRC:$vd), (ins GPR:$rs1),
                 opcodestr, "$vd, (${rs1})"> {
   let Uses = [];
 }
-
-// unit-stride mask load vd, (rs1)
-class VUnitStrideLoadMask<string opcodestr>
-    : RVInstVLU<0b000, LSWidth8.Value{3}, LUMOPUnitStrideMask, LSWidth8.Value{2-0},
-                (outs VR:$vd),
-                (ins GPR:$rs1), opcodestr, "$vd, (${rs1})">;
 } // vm = 1, RVVConstraint = NoConstraint
 
 // unit-stride fault-only-first load vd, (rs1), vm
 class VUnitStrideLoadFF<RISCVWidth width, string opcodestr>
-    : RVInstVLU<0b000, width.Value{3}, LUMOPUnitStrideFF, width.Value{2-0},
+    : RVInstVLU<0b000, LUMOPUnitStrideFF, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, VMaskOp:$vm), opcodestr, "$vd, (${rs1})$vm">;
 
 // strided load vd, (rs1), rs2, vm
 class VStridedLoad<RISCVWidth width, string opcodestr>
-    : RVInstVLS<0b000, width.Value{3}, width.Value{2-0},
+    : RVInstVLS<0b000, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, GPR:$rs2, VMaskOp:$vm), opcodestr,
                 "$vd, (${rs1}), $rs2$vm">;
 
 // indexed load vd, (rs1), vs2, vm
 class VIndexedLoad<RISCVMOP mop, RISCVWidth width, string opcodestr>
-    : RVInstVLX<0b000, width.Value{3}, mop, width.Value{2-0},
+    : RVInstVLX<0b000, mop, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, VR:$vs2, VMaskOp:$vm), opcodestr,
                 "$vd, (${rs1}), $vs2$vm">;
 
 // unit-stride segment load vd, (rs1), vm
 class VUnitStrideSegmentLoad<bits<3> nf, RISCVWidth width, string opcodestr>
-    : RVInstVLU<nf, width.Value{3}, LUMOPUnitStride, width.Value{2-0},
+    : RVInstVLU<nf, LUMOPUnitStride, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, VMaskOp:$vm), opcodestr, "$vd, (${rs1})$vm">;
 
 // segment fault-only-first load vd, (rs1), vm
 class VUnitStrideSegmentLoadFF<bits<3> nf, RISCVWidth width, string opcodestr>
-    : RVInstVLU<nf, width.Value{3}, LUMOPUnitStrideFF, width.Value{2-0},
+    : RVInstVLU<nf, LUMOPUnitStrideFF, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, VMaskOp:$vm), opcodestr, "$vd, (${rs1})$vm">;
 
 // strided segment load vd, (rs1), rs2, vm
 class VStridedSegmentLoad<bits<3> nf, RISCVWidth width, string opcodestr>
-    : RVInstVLS<nf, width.Value{3}, width.Value{2-0},
+    : RVInstVLS<nf, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, GPR:$rs2, VMaskOp:$vm), opcodestr,
                 "$vd, (${rs1}), $rs2$vm">;
@@ -186,7 +180,7 @@ class VStridedSegmentLoad<bits<3> nf, RISCVWidth width, string opcodestr>
 // indexed segment load vd, (rs1), vs2, vm
 class VIndexedSegmentLoad<bits<3> nf, RISCVMOP mop, RISCVWidth width,
                           string opcodestr>
-    : RVInstVLX<nf, width.Value{3}, mop, width.Value{2-0},
+    : RVInstVLX<nf, mop, width.Value,
                 (outs VR:$vd),
                 (ins GPR:$rs1, VR:$vs2, VMaskOp:$vm), opcodestr,
                 "$vd, (${rs1}), $vs2$vm">;
@@ -195,54 +189,48 @@ class VIndexedSegmentLoad<bits<3> nf, RISCVMOP mop, RISCVWidth width,
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in {
 // unit-stride store vd, vs3, (rs1), vm
 class VUnitStrideStore<RISCVWidth width, string opcodestr>
-    : RVInstVSU<0b000, width.Value{3}, SUMOPUnitStride, width.Value{2-0},
+    : RVInstVSU<0b000, SUMOPUnitStride, width.Value,
                 (outs), (ins VR:$vs3, GPR:$rs1, VMaskOp:$vm), opcodestr,
                 "$vs3, (${rs1})$vm">;
 
 let vm = 1 in {
 // vs<nf>r.v vd, (rs1)
 class VWholeStore<bits<3> nf, string opcodestr, RegisterClass VRC>
-    : RVInstVSU<nf, 0, SUMOPUnitStrideWholeReg,
+    : RVInstVSU<nf, SUMOPUnitStrideWholeReg,
                 0b000, (outs), (ins VRC:$vs3, GPR:$rs1),
                 opcodestr, "$vs3, (${rs1})"> {
   let Uses = [];
 }
-
-// unit-stride mask store vd, vs3, (rs1)
-class VUnitStrideStoreMask<string opcodestr>
-    : RVInstVSU<0b000, LSWidth8.Value{3}, SUMOPUnitStrideMask, LSWidth8.Value{2-0},
-                (outs), (ins VR:$vs3, GPR:$rs1), opcodestr,
-                "$vs3, (${rs1})">;
 } // vm = 1
 
 // strided store vd, vs3, (rs1), rs2, vm
 class VStridedStore<RISCVWidth width, string opcodestr>
-    : RVInstVSS<0b000, width.Value{3}, width.Value{2-0}, (outs),
+    : RVInstVSS<0b000, width.Value, (outs),
                 (ins VR:$vs3, GPR:$rs1, GPR:$rs2, VMaskOp:$vm),
                 opcodestr, "$vs3, (${rs1}), $rs2$vm">;
 
 // indexed store vd, vs3, (rs1), vs2, vm
 class VIndexedStore<RISCVMOP mop, RISCVWidth width, string opcodestr>
-    : RVInstVSX<0b000, width.Value{3}, mop, width.Value{2-0}, (outs),
+    : RVInstVSX<0b000, mop, width.Value, (outs),
                 (ins VR:$vs3, GPR:$rs1, VR:$vs2, VMaskOp:$vm),
                 opcodestr, "$vs3, (${rs1}), $vs2$vm">;
 
 // segment store vd, vs3, (rs1), vm
 class VUnitStrideSegmentStore<bits<3> nf, RISCVWidth width, string opcodestr>
-    : RVInstVSU<nf, width.Value{3}, SUMOPUnitStride, width.Value{2-0},
+    : RVInstVSU<nf, SUMOPUnitStride, width.Value,
                 (outs), (ins VR:$vs3, GPR:$rs1, VMaskOp:$vm), opcodestr,
                 "$vs3, (${rs1})$vm">;
 
 // segment store vd, vs3, (rs1), rs2, vm
 class VStridedSegmentStore<bits<3> nf, RISCVWidth width, string opcodestr>
-    : RVInstVSS<nf, width.Value{3}, width.Value{2-0}, (outs),
+    : RVInstVSS<nf, width.Value, (outs),
                 (ins VR:$vs3, GPR:$rs1, GPR:$rs2, VMaskOp:$vm),
                 opcodestr, "$vs3, (${rs1}), $rs2$vm">;
 
 // segment store vd, vs3, (rs1), vs2, vm
 class VIndexedSegmentStore<bits<3> nf, RISCVMOP mop, RISCVWidth width,
                            string opcodestr>
-    : RVInstVSX<nf, width.Value{3}, mop, width.Value{2-0}, (outs),
+    : RVInstVSX<nf, mop, width.Value, (outs),
                 (ins VR:$vs3, GPR:$rs1, VR:$vs2, VMaskOp:$vm),
                 opcodestr, "$vs3, (${rs1}), $vs2$vm">;
 } // hasSideEffects = 0, mayLoad = 0, mayStore = 1
@@ -782,9 +770,6 @@ let hasSideEffects = 1, mayLoad = 0, mayStore = 0 in {
 def VSETVLI : RVInstSetVLi<(outs GPR:$rd), (ins GPR:$rs1, VTypeIOp11:$vtypei),
                            "vsetvli", "$rd, $rs1, $vtypei">;
 
-def VSETIVLI : RVInstSetiVLi<(outs GPR:$rd), (ins uimm5:$uimm, VTypeIOp10:$vtypei),
-                             "vsetivli", "$rd, $uimm, $vtypei">;
-
 def VSETVL : RVInstSetVL<(outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
                          "vsetvl", "$rd, $rs1, $rs2">;
 } // hasSideEffects = 1, mayLoad = 0, mayStore = 0
@@ -831,15 +816,6 @@ let Predicates = [HasStdExtV, IsRV64] in {
 } // Predicates = [HasStdExtV, IsRV64]
 
 let Predicates = [HasStdExtV] in {
-def VLM_V : VUnitStrideLoadMask<"vlm.v">,
-             Sched<[WriteVLDM, ReadVLDX]>;
-def VSM_V : VUnitStrideStoreMask<"vsm.v">,
-             Sched<[WriteVSTM, ReadVSTM, ReadVSTX]>;
-def : InstAlias<"vle1.v $vd, (${rs1})",
-                (VLM_V VR:$vd, GPR:$rs1), 0>;
-def : InstAlias<"vse1.v $vs3, (${rs1})",
-                (VSM_V VR:$vs3, GPR:$rs1), 0>;
-
 defm VL1R : VWholeLoadN<0, "vl1r", VR>;
 defm VL2R : VWholeLoadN<1, "vl2r", VRM2>;
 defm VL4R : VWholeLoadN<3, "vl4r", VRM4>;
