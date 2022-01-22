@@ -103,14 +103,6 @@ enum VLMUL : uint8_t {
   LMUL_4,
   LMUL_8,
   LMUL_RESERVED,
-  LMUL_F8,
-  LMUL_F4,
-  LMUL_F2
-};
-
-enum {
-  TAIL_UNDISTURBED = 0,
-  TAIL_AGNOSTIC = 1,
 };
 
 // Helper functions to read TSFlags.
@@ -356,20 +348,24 @@ inline static bool isValidSEW(unsigned SEW) {
 }
 
 // Is this a LMUL value that can be encoded into the VTYPE format.
-inline static bool isValidLMUL(unsigned LMUL, bool Fractional) {
-  return isPowerOf2_32(LMUL) && LMUL <= 8 && (!Fractional || LMUL != 1);
+inline static bool isValidLMUL(unsigned LMUL) {
+  return isPowerOf2_32(LMUL) && LMUL <= 8;
 }
 
-unsigned encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW, bool TailAgnostic,
-                     bool MaskAgnostic);
+// Is this a EDIV value that can be encoded into the VTYPE format.
+inline static bool isValidEDIV(unsigned EDIV) {
+  return isPowerOf2_32(EDIV) && EDIV <= 8;
+}
+
+unsigned encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW, unsigned VEDIV);
 
 inline static RISCVII::VLMUL getVLMUL(unsigned VType) {
-  unsigned VLMUL = VType & 0x7;
+  unsigned VLMUL = VType & 0x3;
   return static_cast<RISCVII::VLMUL>(VLMUL);
 }
 
 // Decode VLMUL into 1,2,4,8 and fractional indicator.
-std::pair<unsigned, bool> decodeVLMUL(RISCVII::VLMUL VLMUL);
+unsigned decodeVLMUL(RISCVII::VLMUL VLMUL);
 
 inline static unsigned decodeVSEW(unsigned VSEW) {
   assert(VSEW < 8 && "Unexpected VSEW value");
@@ -377,13 +373,23 @@ inline static unsigned decodeVSEW(unsigned VSEW) {
 }
 
 inline static unsigned getSEW(unsigned VType) {
-  unsigned VSEW = (VType >> 3) & 0x7;
+  unsigned VSEW = (VType >> 2) & 0x7;
   return decodeVSEW(VSEW);
 }
 
 inline static bool isTailAgnostic(unsigned VType) { return VType & 0x40; }
 
 inline static bool isMaskAgnostic(unsigned VType) { return VType & 0x80; }
+
+inline static unsigned decodeVEDIV(unsigned VEDIV) {
+  assert(VEDIV < 4 && "Unexpected VEDIV value");
+  return 1 << (VEDIV);
+}
+
+inline static unsigned getVEDIV(unsigned VType) {
+  unsigned VEDIV = (VType >> 5) & 0x3;
+  return decodeVEDIV(VEDIV);
+}
 
 void printVType(unsigned VType, raw_ostream &OS);
 

@@ -370,18 +370,12 @@ multiclass VPatNConvertFP2ISDNode_V<SDNode vop, string instruction_name> {
 let Predicates = [HasVInstructions] in {
 
 // 7.4. Vector Unit-Stride Instructions
-foreach vti = !listconcat(FractionalGroupIntegerVectors,
-                          FractionalGroupFloatVectors) in
-  defm : VPatUSLoadStoreSDNode<vti.Vector, vti.Log2SEW, vti.LMul,
-                               vti.AVL, vti.RegClass>;
 foreach vti = [VI8M1, VI16M1, VI32M1, VI64M1, VF16M1, VF32M1, VF64M1] in
   defm : VPatUSLoadStoreWholeVRSDNode<vti.Vector, vti.Log2SEW, vti.LMul,
                                       vti.RegClass>;
 foreach vti = !listconcat(GroupIntegerVectors, GroupFloatVectors) in
   defm : VPatUSLoadStoreWholeVRSDNode<vti.Vector, vti.Log2SEW, vti.LMul,
                                       vti.RegClass>;
-foreach mti = AllMasks in
-  defm : VPatUSLoadStoreMaskSDNode<mti>;
 
 // 12.1. Vector Single-Width Integer Add and Subtract
 defm : VPatBinarySDNode_VV_VX_VI<add, "PseudoVADD">;

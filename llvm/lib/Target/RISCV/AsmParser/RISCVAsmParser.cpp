@@ -1696,40 +1696,29 @@ OperandMatchResultTy RISCVAsmParser::parseVTypeI(OperandVector &Operands) {
     Name = VTypeIElements[2].getIdentifier();
     if (!Name.consume_front("m"))
       goto MatchFail;
-    // "m" or "mf"
-    bool Fractional = Name.consume_front("f");
+    // "m"
     unsigned Lmul;
     if (Name.getAsInteger(10, Lmul))
       goto MatchFail;
-    if (!RISCVVType::isValidLMUL(Lmul, Fractional))
+    if (!RISCVVType::isValidLMUL(Lmul))
       goto MatchFail;
 
-    // ta or tu
+    // ediv
     Name = VTypeIElements[4].getIdentifier();
-    bool TailAgnostic;
-    if (Name == "ta")
-      TailAgnostic = true;
-    else if (Name == "tu")
-      TailAgnostic = false;
-    else
+    if (!Name.consume_front("d"))
       goto MatchFail;
-
-    // ma or mu
-    Name = VTypeIElements[6].getIdentifier();
-    bool MaskAgnostic;
-    if (Name == "ma")
-      MaskAgnostic = true;
-    else if (Name == "mu")
-      MaskAgnostic = false;
-    else
+    unsigned Ediv;
+    if (Name.getAsInteger(10, Ediv))
+      goto MatchFail;
+    if (!RISCVVType::isValidEDIV(Ediv))
       goto MatchFail;
 
     unsigned LmulLog2 = Log2_32(Lmul);
     RISCVII::VLMUL VLMUL =
-        static_cast<RISCVII::VLMUL>(Fractional ? 8 - LmulLog2 : LmulLog2);
+        static_cast<RISCVII::VLMUL>(LmulLog2);
 
     unsigned VTypeI =
-        RISCVVType::encodeVTYPE(VLMUL, Sew, TailAgnostic, MaskAgnostic);
+        RISCVVType::encodeVTYPE(VLMUL, Sew, Ediv);
     Operands.push_back(RISCVOperand::createVType(VTypeI, S, isRV64()));
     return MatchOperand_Success;
   }

@@ -621,16 +621,6 @@ foreach vti = AllVectors in {
             (store_instr vti.RegClass:$rs2, BaseAddr:$rs1, GPR:$vl, vti.Log2SEW)>;
 }
 
-foreach mti = AllMasks in {
-  defvar load_instr = !cast<Instruction>("PseudoVLM_V_"#mti.BX);
-  defvar store_instr = !cast<Instruction>("PseudoVSM_V_"#mti.BX);
-  def : Pat<(mti.Mask (riscv_vle_vl BaseAddr:$rs1, VLOpFrag)),
-            (load_instr BaseAddr:$rs1, GPR:$vl, mti.Log2SEW)>;
-  def : Pat<(riscv_vse_vl (mti.Mask VR:$rs2), BaseAddr:$rs1,
-                          VLOpFrag),
-            (store_instr VR:$rs2, BaseAddr:$rs1, GPR:$vl, mti.Log2SEW)>;
-}
-
 // 12.1. Vector Single-Width Integer Add and Subtract
 defm : VPatBinaryVL_VV_VX_VI<riscv_add_vl, "PseudoVADD">;
 defm : VPatBinaryVL_VV_VX<riscv_sub_vl, "PseudoVSUB">;
@@ -1336,7 +1326,7 @@ foreach vti = AllIntegerVectors in {
   defvar vlmul = vti.LMul;
   defvar octuple_lmul = vlmul.octuple;
   defvar octuple_emul = !srl(!mul(octuple_lmul, 16), vti.Log2SEW);
-  if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+  if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
     defvar emul_str = octuple_to_str<octuple_emul>.ret;
     defvar ivti = !cast<VTypeInfo>("VI16" # emul_str);
     defvar inst = "PseudoVRGATHEREI16_VV_" # vti.LMul.MX # "_" # emul_str;
@@ -1423,7 +1413,7 @@ foreach vti = AllFloatVectors in {
   defvar vlmul = vti.LMul;
   defvar octuple_lmul = vlmul.octuple;
   defvar octuple_emul = !srl(!mul(octuple_lmul, 16), vti.Log2SEW);
-  if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+  if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
     defvar emul_str = octuple_to_str<octuple_emul>.ret;
     defvar ivti = !cast<VTypeInfo>("VI16" # emul_str);
     defvar inst = "PseudoVRGATHEREI16_VV_" # vti.LMul.MX # "_" # emul_str;

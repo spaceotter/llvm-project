@@ -527,13 +527,7 @@ class PseudoToVInst<string PseudoInst> {
                  !subst("F16", "F",
                  !subst("F32", "F",
                  !subst("F64", "F",
-                 !subst("E8", "B",
-                 !subst("E16", "H",
-                 !subst("E32", "W",
-                 !subst("EI8", "B",
-                 !subst("EI16", "H",
-                 !subst("EI32", "W",
-                 !subst("Pseudo", "", PseudoInst)))))))))))))))))))))));
+                 !subst("Pseudo", "", PseudoInst)))))))))))))))));
 }
 
 // The destination vector register group for a masked vector instruction cannot
@@ -2482,7 +2476,7 @@ multiclass VPseudoISegStore<bit Ordered> {
         defvar octuple_lmul = val_lmul.octuple;
         // Calculate emul = eew * lmul / sew
         defvar octuple_emul = !srl(!mul(idx_eew, octuple_lmul), log2<sew>.val);
-        if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+        if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
           defvar ValLInfo = val_lmul.MX;
           defvar IdxLInfo = octuple_to_str<octuple_emul>.ret;
           defvar idx_lmul = !cast<LMULInfo>("V_" # IdxLInfo);
@@ -3069,7 +3063,7 @@ multiclass VPatBinaryV_VV_INT_EEW<string intrinsic, string instruction,
     defvar vlmul = vti.LMul;
     defvar octuple_lmul = vlmul.octuple;
     defvar octuple_emul = !srl(!mul(octuple_lmul, eew), vti.Log2SEW);
-    if !and(!ge(octuple_emul, 1), !le(octuple_emul, 64)) then {
+    if !and(!ge(octuple_emul, 8), !le(octuple_emul, 64)) then {
       defvar emul_str = octuple_to_str<octuple_emul>.ret;
       defvar ivti = !cast<VTypeInfo>("VI" # eew # emul_str);
       defvar inst = instruction # "_VV_" # vti.LMul.MX # "_" # emul_str;
@@ -3751,11 +3745,6 @@ def PseudoVSETVLIX0 : Pseudo<(outs GPR:$rd), (ins GPRX0:$rs1, VTypeIOp11:$vtypei
 // Pseudos Unit-Stride Loads and Stores
 defm PseudoVL : VPseudoUSLoad;
 defm PseudoVS : VPseudoUSStore;
-
-defm PseudoVLM : VPseudoLoadMask,
-                 Sched<[WriteVLDM, ReadVLDX]>;
-defm PseudoVSM : VPseudoStoreMask,
-                 Sched<[WriteVSTM, ReadVSTX]>;
 
 //===----------------------------------------------------------------------===//
 // 7.5 Vector Strided Instructions

@@ -226,9 +226,6 @@ static SDValue createTuple(SelectionDAG &CurDAG, ArrayRef<SDValue> Regs,
   switch (LMUL) {
   default:
     llvm_unreachable("Invalid LMUL.");
-  case RISCVII::VLMUL::LMUL_F8:
-  case RISCVII::VLMUL::LMUL_F4:
-  case RISCVII::VLMUL::LMUL_F2:
   case RISCVII::VLMUL::LMUL_1:
     return createM1Tuple(CurDAG, Regs, NF);
   case RISCVII::VLMUL::LMUL_2:
@@ -883,9 +880,6 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
     VMNANDOpcode = RISCV::PseudoVMNAND_MM_##suffix;                            \
     VMSetOpcode = RISCV::PseudoVMSET_M_##suffix_b;                             \
     break;
-        CASE_VMSLT_VMNAND_VMSET_OPCODES(LMUL_F8, MF8, B1)
-        CASE_VMSLT_VMNAND_VMSET_OPCODES(LMUL_F4, MF4, B2)
-        CASE_VMSLT_VMNAND_VMSET_OPCODES(LMUL_F2, MF2, B4)
         CASE_VMSLT_VMNAND_VMSET_OPCODES(LMUL_1, M1, B8)
         CASE_VMSLT_VMNAND_VMSET_OPCODES(LMUL_2, M2, B16)
         CASE_VMSLT_VMNAND_VMSET_OPCODES(LMUL_4, M4, B32)
@@ -944,9 +938,6 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
                                  : RISCV::PseudoVMSLT_VX_##suffix##_MASK;      \
     VMSetOpcode = RISCV::PseudoVMSET_M_##suffix_b;                             \
     break;
-        CASE_VMSLT_VMSET_OPCODES(LMUL_F8, MF8, B1)
-        CASE_VMSLT_VMSET_OPCODES(LMUL_F4, MF4, B2)
-        CASE_VMSLT_VMSET_OPCODES(LMUL_F2, MF2, B4)
         CASE_VMSLT_VMSET_OPCODES(LMUL_1, M1, B8)
         CASE_VMSLT_VMSET_OPCODES(LMUL_2, M2, B16)
         CASE_VMSLT_VMSET_OPCODES(LMUL_4, M4, B32)
@@ -963,9 +954,6 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
     VMANDNOpcode = RISCV::PseudoVMANDN_MM_##suffix;                            \
     VMANDOpcode = RISCV::PseudoVMAND_MM_##suffix;                              \
     break;
-        CASE_VMXOR_VMANDN_VMAND_OPCODES(LMUL_F8, MF8)
-        CASE_VMXOR_VMANDN_VMAND_OPCODES(LMUL_F4, MF4)
-        CASE_VMXOR_VMANDN_VMAND_OPCODES(LMUL_F2, MF2)
         CASE_VMXOR_VMANDN_VMAND_OPCODES(LMUL_1, M1)
         CASE_VMXOR_VMANDN_VMAND_OPCODES(LMUL_2, M2)
         CASE_VMXOR_VMANDN_VMAND_OPCODES(LMUL_4, M4)
@@ -1043,8 +1031,9 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       RISCVII::VLMUL VLMul = static_cast<RISCVII::VLMUL>(
           Node->getConstantOperandVal(Offset + 1) & 0x7);
 
+      // TODO (ereaton): Get an EDIV value
       unsigned VTypeI = RISCVVType::encodeVTYPE(
-          VLMul, SEW, /*TailAgnostic*/ true, /*MaskAgnostic*/ false);
+          VLMul, SEW, 1 /* EDIV */);
       SDValue VTypeIOp = CurDAG->getTargetConstant(VTypeI, DL, XLenVT);
 
       SDValue VLOperand;
@@ -1052,20 +1041,6 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
       if (VLMax) {
         VLOperand = CurDAG->getRegister(RISCV::X0, XLenVT);
         Opcode = RISCV::PseudoVSETVLIX0;
-      } else {
-        VLOperand = Node->getOperand(2);
-
-        if (auto *C = dyn_cast<ConstantSDNode>(VLOperand)) {
-          uint64_t AVL = C->getZExtValue();
-          if (isUInt<5>(AVL)) {
-            SDValue VLImm = CurDAG->getTargetConstant(AVL, DL, XLenVT);
-            ReplaceNode(
-                Node, CurDAG->getMachineNode(RISCV::PseudoVSETIVLI, DL, XLenVT,
-                                             MVT::Other, VLImm, VTypeIOp,
-                                             /* Chain */ Node->getOperand(0)));
-            return;
-          }
-        }
       }
 
       ReplaceNode(Node,
@@ -1481,10 +1456,7 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
     if (Idx != 0)
       break;
 
-    RISCVII::VLMUL SubVecLMUL = RISCVTargetLowering::getLMUL(SubVecContainerVT);
-    bool IsSubVecPartReg = SubVecLMUL == RISCVII::VLMUL::LMUL_F2 ||
-                           SubVecLMUL == RISCVII::VLMUL::LMUL_F4 ||
-                           SubVecLMUL == RISCVII::VLMUL::LMUL_F8;
+    bool IsSubVecPartReg = false;
     (void)IsSubVecPartReg; // Silence unused variable warning without asserts.
     assert((!IsSubVecPartReg || V.isUndef()) &&
            "Expecting lowering to have created legal INSERT_SUBVECTORs when "
