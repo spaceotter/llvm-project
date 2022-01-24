@@ -25,7 +25,7 @@ define void @store_nxv7f64(<vscale x 7 x double> %val, <vscale x 7 x double>* %p
 ; CHECK-NEXT:    srli a1, a1, 3
 ; CHECK-NEXT:    slli a2, a1, 3
 ; CHECK-NEXT:    sub a1, a2, a1
-; CHECK-NEXT:    vsetvli zero, a1, e64, m8, ta, mu
+; CHECK-NEXT:    vsetvli zero, a1, e64, m8, d1
 ; CHECK-NEXT:    vse64.v v8, (a0)
 ; CHECK-NEXT:    ret
   store <vscale x 7 x double> %val, <vscale x 7 x double>* %ptr

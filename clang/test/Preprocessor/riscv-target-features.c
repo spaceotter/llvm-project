@@ -189,10 +189,10 @@
 // CHECK-ZBT-EXT: __riscv_zbt 93000
 
 // RUN: %clang -target riscv32-unknown-linux-gnu -menable-experimental-extensions \
-// RUN: -march=rv32iv0p10 -x c -E -dM %s \
+// RUN: -march=rv32iv0p8 -x c -E -dM %s \
 // RUN: -o - | FileCheck --check-prefix=CHECK-V-EXT %s
 // RUN: %clang -target riscv64-unknown-linux-gnu -menable-experimental-extensions \
-// RUN: -march=rv64iv0p10 -x c -E -dM %s \
+// RUN: -march=rv64iv0p8 -x c -E -dM %s \
 // RUN: -o - | FileCheck --check-prefix=CHECK-V-EXT %s
 // RUN: %clang -target riscv32-unknown-linux-gnu -menable-experimental-extensions \
 // RUN: -march=rv32izvlsseg0p10 -x c -E -dM %s \

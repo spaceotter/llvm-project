@@ -377,10 +377,6 @@ inline static unsigned getSEW(unsigned VType) {
   return decodeVSEW(VSEW);
 }
 
-inline static bool isTailAgnostic(unsigned VType) { return VType & 0x40; }
-
-inline static bool isMaskAgnostic(unsigned VType) { return VType & 0x80; }
-
 inline static unsigned decodeVEDIV(unsigned VEDIV) {
   assert(VEDIV < 4 && "Unexpected VEDIV value");
   return 1 << (VEDIV);
