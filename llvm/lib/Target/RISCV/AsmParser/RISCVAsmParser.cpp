@@ -1680,10 +1680,10 @@ OperandMatchResultTy RISCVAsmParser::parseVTypeI(OperandVector &Operands) {
     getLexer().Lex();
   }
 
-  if (VTypeIElements.size() == 7) {
+  if (VTypeIElements.size() == 5) {
     // The VTypeIElements layout is:
-    // SEW comma LMUL comma TA comma MA
-    //  0    1    2     3    4   5    6
+    // SEW comma LMUL comma EDIV
+    //  0    1    2     3    4
     StringRef Name = VTypeIElements[0].getIdentifier();
     if (!Name.consume_front("e"))
       goto MatchFail;

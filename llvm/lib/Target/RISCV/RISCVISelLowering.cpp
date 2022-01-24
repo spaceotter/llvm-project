@@ -4339,10 +4339,6 @@ SDValue RISCVTargetLowering::LowerINTRINSIC_W_CHAIN(SDValue Op,
     if (!IsUnmasked)
       Ops.push_back(Mask);
     Ops.push_back(VL);
-    if (!IsUnmasked) {
-      SDValue Policy = DAG.getTargetConstant(RISCVII::TAIL_AGNOSTIC, DL, XLenVT);
-      Ops.push_back(Policy);
-    }
 
     SDVTList VTs = DAG.getVTList({ContainerVT, MVT::Other});
     SDValue Result =
@@ -5189,8 +5185,6 @@ SDValue RISCVTargetLowering::lowerMaskedLoad(SDValue Op,
   if (!IsUnmasked)
     Ops.push_back(Mask);
   Ops.push_back(VL);
-  if (!IsUnmasked)
-    Ops.push_back(DAG.getTargetConstant(RISCVII::TAIL_AGNOSTIC, DL, XLenVT));
 
   SDVTList VTs = DAG.getVTList({ContainerVT, MVT::Other});
 
@@ -5571,8 +5565,6 @@ SDValue RISCVTargetLowering::lowerMaskedGather(SDValue Op,
   if (!IsUnmasked)
     Ops.push_back(Mask);
   Ops.push_back(VL);
-  if (!IsUnmasked)
-    Ops.push_back(DAG.getTargetConstant(RISCVII::TAIL_AGNOSTIC, DL, XLenVT));
 
   SDVTList VTs = DAG.getVTList({ContainerVT, MVT::Other});
   SDValue Result =
