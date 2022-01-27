@@ -369,7 +369,7 @@ struct BlockData {
 };
 
 class RISCVInsertVSETVLI : public MachineFunctionPass {
-  const TargetInstrInfo *TII;
+  const RISCVInstrInfo *TII;
   MachineRegisterInfo *MRI;
 
   std::vector<BlockData> BlockInfo;
@@ -546,9 +546,9 @@ void RISCVInsertVSETVLI::insertVSETVLI(MachineBasicBlock &MBB, MachineInstr &MI,
     }
 
     // Otherwise use an AVL of 0 to avoid depending on previous vl.
-    // TODO (spaceotter): Load zero to a temporary register to get AVL=0
-    assert(0 && "Need to inject li instruction here");
-    return;
+    dbgs() << "Need to inject load immediate\n";
+    AVLReg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
+    TII->movImm(MBB, MachineBasicBlock::instr_iterator(MI), DL, AVLReg, 0);
   }
 
   if (AVLReg.isVirtual())

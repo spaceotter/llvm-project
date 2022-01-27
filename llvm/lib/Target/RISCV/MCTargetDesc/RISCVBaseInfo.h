@@ -50,8 +50,8 @@ enum {
   ConstraintShift = InstFormatShift + 5,
   ConstraintMask = 0b111 << ConstraintShift,
 
-  VLMulShift = ConstraintShift + 3,
-  VLMulMask = 0b111 << VLMulShift,
+  VLMulShift = ConstraintShift + 4,
+  VLMulMask = 0b11 << VLMulShift,
 
   // Do we need to add a dummy mask op when converting RVV Pseudo to MCInst.
   HasDummyMaskOpShift = VLMulShift + 3,
